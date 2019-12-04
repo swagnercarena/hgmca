@@ -1,4 +1,5 @@
-from hgmca.gmca import update_S
+from hgmca.gmca import update_S, update_A
+from hgmca.helpers import A_norm
 import numpy as np
 import unittest
 
@@ -9,7 +10,6 @@ class GmcaTests(unittest.TestCase):
 
 	def test_update_S(self):
 		# Check that the S update step works as intended.
-		
 		n_wavs = 1000
 		n_freqs = 8
 		n_sources = 5
@@ -55,10 +55,50 @@ class GmcaTests(unittest.TestCase):
 
 	def test_update_A(self):
 		# Check that the A update step works as intended
-		
-		return
+		n_wavs = 1000
+		n_freqs = 8
+		n_sources = 5
 
+		# Start by generating a our A and S matrix
+		S = np.ones((n_sources,n_wavs))
+		A = np.ones((n_freqs,n_sources))/np.sqrt(n_freqs)
 
+		# Create the remainder matrix
+		R_i = np.ones((n_freqs,n_wavs))
+
+		# Create an A_p to use for testing
+		A_p = np.random.randn(n_freqs*n_sources).reshape((n_freqs,n_sources))
+		A_norm(A_p)
+		enforce_nn_A = False
+
+		# Test results for various values of lam_p
+		lam_p_tests = [0.0,0.1,1,2,100,200,1000,1e8]
+		for lam_p_val in lam_p_tests:
+			lam_p = [lam_p_val] * n_sources
+			for i in range(n_sources):
+				update_A(S,A,R_i,lam_p,A_p,enforce_nn_A,i)
+
+				# Make sure that all the columns have the correct value.
+				check_A = np.ones(n_freqs) * n_wavs
+				check_A += lam_p_val*A_p[:,i]
+				check_A /= np.linalg.norm(check_A)
+				self.assertAlmostEqual(np.max(np.abs(A[:,i] - check_A)),0)
+
+		# Test that everything still holds when nonegativity is enforced
+		enforce_nn_A = True
+		lam_p_tests = [0.0,0.1,1,2,100,200,1000,1e8]
+		for lam_p_val in lam_p_tests:
+			lam_p = [lam_p_val] * n_sources
+			for i in range(n_sources):
+				update_A(S,A,R_i,lam_p,A_p,enforce_nn_A,i)
+
+				# Make sure that all the columns have the correct value.
+				check_A = np.ones(n_freqs) * n_wavs
+				check_A += lam_p_val*A_p[:,i]
+				check_A[check_A<0] = 0
+				if np.sum(check_A) > 0:
+					check_A /= np.linalg.norm(check_A)
+				self.assertAlmostEqual(np.max(np.abs(A[:,i] - check_A)),0)
 
 
 
