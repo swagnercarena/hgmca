@@ -1,5 +1,5 @@
-from hgmca.gmca import update_S
-from hgmca.gmca import gmca_numba
+from hgmca.gmca import update_S, update_A, gmca_numba
+from hgmca.helpers import A_norm
 import numpy as np
 import unittest
 
@@ -10,7 +10,6 @@ class GmcaTests(unittest.TestCase):
 
 	def test_update_S(self):
 		# Check that the S update step works as intended.
-		
 		n_wavs = 1000
 		n_freqs = 8
 		n_sources = 5
@@ -53,7 +52,53 @@ class GmcaTests(unittest.TestCase):
 				S_check[np.abs(S_check)<lam_s] = 0
 				S_check -= lam_s*np.sign(S_check)
 				self.assertAlmostEqual(np.max(np.abs(S[i]-S_check)),0)
+		
+	def test_update_A(self):
+		# Check that the A update step works as intended
+		n_wavs = 1000
+		n_freqs = 8
+		n_sources = 5
 
+		# Start by generating a our A and S matrix
+		S = np.ones((n_sources,n_wavs))
+		A = np.ones((n_freqs,n_sources))/np.sqrt(n_freqs)
+
+		# Create the remainder matrix
+		R_i = np.ones((n_freqs,n_wavs))
+
+		# Create an A_p to use for testing
+		A_p = np.random.randn(n_freqs*n_sources).reshape((n_freqs,n_sources))
+		A_norm(A_p)
+		enforce_nn_A = False
+
+		# Test results for various values of lam_p
+		lam_p_tests = [0.0,0.1,1,2,100,200,1000,1e8]
+		for lam_p_val in lam_p_tests:
+			lam_p = [lam_p_val] * n_sources
+			for i in range(n_sources):
+				update_A(S,A,R_i,lam_p,A_p,enforce_nn_A,i)
+
+				# Make sure that all the columns have the correct value.
+				check_A = np.ones(n_freqs) * n_wavs
+				check_A += lam_p_val*A_p[:,i]
+				check_A /= np.linalg.norm(check_A)
+				self.assertAlmostEqual(np.max(np.abs(A[:,i] - check_A)),0)
+
+		# Test that everything still holds when nonegativity is enforced
+		enforce_nn_A = True
+		lam_p_tests = [0.0,0.1,1,2,100,200,1000,1e8]
+		for lam_p_val in lam_p_tests:
+			lam_p = [lam_p_val] * n_sources
+			for i in range(n_sources):
+				update_A(S,A,R_i,lam_p,A_p,enforce_nn_A,i)
+
+				# Make sure that all the columns have the correct value.
+				check_A = np.ones(n_freqs) * n_wavs
+				check_A += lam_p_val*A_p[:,i]
+				check_A[check_A<0] = 0
+				if np.sum(check_A) > 0:
+					check_A /= np.linalg.norm(check_A)
+				self.assertAlmostEqual(np.max(np.abs(A[:,i] - check_A)),0)
 
 	def test_ret_min_rmse(self):
 		# Check that the minimum RMSE solution is returned
@@ -74,7 +119,8 @@ class GmcaTests(unittest.TestCase):
 		S = np.ones(S_org.shape)
 
 		# Run GMCA
-		gmca_numba(np.array(X), n_sources, n_iterations, A, S, A_p, lam_p, ret_min_rmse=True)
+		gmca_numba(np.array(X), n_sources, n_iterations, A, S, A_p, lam_p, 
+			ret_min_rmse=True)
 
 		# Check that GMCA returns the minimum RMSE solution
 		self.assertAlmostEqual(np.sum(S),np.sum(np.dot(np.linalg.pinv(A),X)))
@@ -84,10 +130,12 @@ class GmcaTests(unittest.TestCase):
 		S = np.ones(S_org.shape)
 
 		# Re-run GMCA without ret_min_rmse
-		gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, ret_min_rmse=False)
+		gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
+			ret_min_rmse=False)
 
 		# Check that GMCA does not return the min_rmse solution
 		self.assertNotEqual(np.sum(S),np.sum(np.dot(np.linalg.pinv(A),X)))
+
 	def test_min_rmse_rate(self):
 		# Check that the minimum RMSE solution is returned
 		freq_dim = 10
@@ -127,7 +175,5 @@ class GmcaTests(unittest.TestCase):
 		# Check that the A update step works as intended
 		
 		return
-
-
 
 

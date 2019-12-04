@@ -2,9 +2,42 @@ import numpy as np
 import numba
 
 @numba.jit(nopython=True)
+def update_A(S,A,R_i,lam_p,A_p,enforce_nn_A,i):
+	"""	Update a column of A according to the closed form solution.
+
+		Paramters:
+			S (np.array): The current value of the matrix S. 
+			A (np.array): The current value of the matrix A. The column i 
+				will be updated.
+			R_i (np.array): The remainder of the data after removing the rest
+				of the sources.
+			lam_p ([float,...]): A n_sources long array of prior for each of 
+				the columns of A_p. This allows for a different lam_p to be 
+				applied to different columns of A_p.
+			A_p (np.array): A matrix prior for the CGMCA calculation. 
+			enforce_nn_A (bool): a boolean that determines if the mixing matrix 
+				will be forced to only have non-negative values.
+			i (int): The index of the source to be updated.
+		
+		Notes:
+			The A matrix column will be updated in place.
+	"""
+
+	# See the paper for the update formula
+	S_i = np.expand_dims(S[i],axis=1)
+	A[:,i] = np.dot(R_i,S_i)[:,0] + lam_p[i] * A_p[:,i]
+	
+	if enforce_nn_A:
+		A *= (A>0)
+	if np.sum(A[:,i]) != 0:
+		# Rescale A norm of A. Don't bother rescaling S since we are 
+		# about to recalculate it. 
+		A[:,i] = A[:,i]/np.linalg.norm(A[:,i])
+
+@numba.jit(nopython=True)
 def update_S(S,A,A_R,R_i,A_i,lam_s,i):
 	"""	Update a row of S according to the closed form solution.
-	
+
 		Paramters:
 			S (np.array): The current value of the matrix S. The row i will be
 				updated.
@@ -17,10 +50,11 @@ def update_S(S,A,A_R,R_i,A_i,lam_s,i):
 				A matrix calculation. Must have the shape (A.shape[0],1).
 			lam_s (float): The lambda parameter for the sparsity l1 norm.
 			i (int): The index of the source to be updated.
-
+		
 		Notes:
 			The S matrix row will be updated in place.
 	"""
+
 	# See paper for derivation of the update formula.
 	A_i += np.expand_dims(A[:,i], axis=1)
 	np.dot(A_i.T,R_i,out=A_R)
@@ -32,7 +66,7 @@ def update_S(S,A,A_R,R_i,A_i,lam_s,i):
 			A_R[0,j] = 0
 	S[i] = A_R - lam_s*np.sign(A_R)
 	# Reset A_i
-	A_i *= 0 
+	A_i *= 0
 
 @numba.jit(nopython=True)
 def gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
@@ -93,15 +127,7 @@ def gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p,
 			R_i-=AS
 
 			# Carry out optimization calculation for column of A
-			S_i = np.expand_dims(S[i],axis=1)
-			A[:,i] = np.dot(R_i,S_i)[:,0] + lam_p[i] * A_p[:,i]
-			
-			if enforce_nn_A:
-				A *= (A>0)
-			if np.sum(A[:,i]) != 0:
-				# Rescale A norm of A. Don't bother rescaling S since we are 
-				# about to recalculate it. 
-				A[:,i] = A[:,i]/np.linalg.norm(A[:,i])
+			update_A(S,A,R_i,lam_p,A_p,enforce_nn_A,i)
 
 			# Carry out the S update step.
 			update_S(S,A,A_R,R_i,A_i,lam_s,i)

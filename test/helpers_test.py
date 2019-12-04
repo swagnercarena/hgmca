@@ -19,8 +19,3 @@ class HelpersTests(unittest.TestCase):
 			for i in range(n_sources):
 				self.assertAlmostEqual(np.sum(np.square(A[:,i])),1)
 
-
-
-
-
-
