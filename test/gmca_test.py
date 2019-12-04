@@ -171,6 +171,15 @@ class GmcaTests(unittest.TestCase):
 
 		# Check that GMCA does not return the min_rmse solution
 		self.assertNotEqual(np.sum(S),np.sum(np.dot(np.linalg.pinv(A),X)))
+
+	def test_lam_s(self):
+
+		return
+
+	def test_lam_p(self):
+
+		return
+		
 	def test_update_A(self):
 		# Check that the A update step works as intended
 		
