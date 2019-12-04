@@ -1,5 +1,5 @@
 import numpy as np
-import helpers
+from hgmca import helpers
 
 # A simple code that generates some random toy data.
 def toy_data(dim, num_sources, sparsity=0.1, ret_A=False, ret_S=False, 

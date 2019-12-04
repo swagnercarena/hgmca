@@ -54,9 +54,9 @@ class GmcaTests(unittest.TestCase):
 				S_check -= lam_s*np.sign(S_check)
 				self.assertAlmostEqual(np.max(np.abs(S[i]-S_check)),0)
 
+
 	def test_ret_min_rmse(self):
 		# Check that the minimum RMSE solution is returned
-
 		freq_dim = 10
 		pix_dim = 100
 		n_iterations = 50
@@ -88,6 +88,11 @@ class GmcaTests(unittest.TestCase):
 
 		# Check that GMCA does not return the min_rmse solution
 		self.assertNotEqual(np.sum(S),np.sum(np.dot(np.linalg.pinv(A),X)))
+		
+	def test_update_A(self):
+		# Check that the A update step works as intended
+		
+		return
 
 
 
