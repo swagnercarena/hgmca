@@ -106,7 +106,7 @@ def gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p,
 			# Carry out the S update step.
 			update_S(S,A,A_R,R_i,A_i,lam_s,i)
 
-		if min_rmse_rate and iteration%min_rmse_rate == 0:
+		if min_rmse_rate and (iteration+1)%min_rmse_rate == 0:
 			np.dot(np.linalg.pinv(A),X,out=S)
 
 	# Only in the context of HGMCA - where the output will be the input to a
