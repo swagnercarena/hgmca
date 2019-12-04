@@ -5,15 +5,15 @@
 
 .. include:: ../README.rst
 
-Contents:
-=========
+Reference
+---------
 
 .. toctree::
    :maxdepth: 2
    
-   hgmca
+   hgmca_gmca
 
 Feedback
-========
+--------
 
 If you have feedback about the hgmca package feel free to email sebaswagner@outlook.com

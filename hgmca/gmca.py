@@ -5,11 +5,11 @@ import numba
 def update_A(S,A,R_i,lam_p,A_p,enforce_nn_A,i):
 	"""	Update a column of A according to the closed form solution.
 
-		Paramters:
+		Parameters:
 			S (np.array): The current value of the matrix S. 
 			A (np.array): The current value of the matrix A. The column i 
 				will be updated.
-			R_i (np.array): The remainder of the data after removing the rest
+			R_i (np.array): The remainder of the data after removing the rest 
 				of the sources.
 			lam_p ([float,...]): A n_sources long array of prior for each of 
 				the columns of A_p. This allows for a different lam_p to be 
@@ -36,9 +36,9 @@ def update_A(S,A,R_i,lam_p,A_p,enforce_nn_A,i):
 
 @numba.jit(nopython=True)
 def update_S(S,A,A_R,R_i,A_i,lam_s,i):
-	"""	Update a row of S according to the closed form solution.
+	""" Update a row of S according to the closed form solution.
 
-		Paramters:
+		Parameters:
 			S (np.array): The current value of the matrix S. The row i will be
 				updated.
 			A (np.array): The current value of the matrix A.
@@ -58,6 +58,7 @@ def update_S(S,A,A_R,R_i,A_i,lam_s,i):
 	# See paper for derivation of the update formula.
 	A_i += np.expand_dims(A[:,i], axis=1)
 	np.dot(A_i.T,R_i,out=A_R)
+
 	# We do a soft thresholding to deal with the fact that there is no
 	# gradient for the l1 norm.
 	# This is fine to do with for loops inside jit.
@@ -65,6 +66,7 @@ def update_S(S,A,A_R,R_i,A_i,lam_s,i):
 		if abs(A_R[0,j]) < lam_s:
 			A_R[0,j] = 0
 	S[i] = A_R - lam_s*np.sign(A_R)
+
 	# Reset A_i
 	A_i *= 0
 

@@ -1,6 +1,0 @@
-hgmca
-=====
-
-.. toctree::
-
-    hgmca.gmca
