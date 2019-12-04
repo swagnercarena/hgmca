@@ -1,4 +1,4 @@
-from hgmca.gmca import update_S, update_A
+from hgmca.gmca import update_S, update_A, gmca_numba
 from hgmca.helpers import A_norm
 import numpy as np
 import unittest
@@ -52,7 +52,7 @@ class GmcaTests(unittest.TestCase):
 				S_check[np.abs(S_check)<lam_s] = 0
 				S_check -= lam_s*np.sign(S_check)
 				self.assertAlmostEqual(np.max(np.abs(S[i]-S_check)),0)
-
+		
 	def test_update_A(self):
 		# Check that the A update step works as intended
 		n_wavs = 1000
@@ -100,6 +100,40 @@ class GmcaTests(unittest.TestCase):
 					check_A /= np.linalg.norm(check_A)
 				self.assertAlmostEqual(np.max(np.abs(A[:,i] - check_A)),0)
 
+	def test_ret_min_rmse(self):
+		# Check that the minimum RMSE solution is returned
+		freq_dim = 10
+		pix_dim = 100
+		n_iterations = 50
+		n_sources = 5
+		lam_p = [0.0]*5
 
+		# Generate ground truth A and S 
+		A_org = np.random.normal(size=(freq_dim,n_sources))
+		S_org = np.random.normal(size=(n_sources,pix_dim))
+		X = np.dot(A_org,S_org)
+
+		# Initialize A and S for GMCA
+		A_p = np.ones(A_org.shape)
+		A = np.ones(A_org.shape)
+		S = np.ones(S_org.shape)
+
+		# Run GMCA
+		gmca_numba(np.array(X), n_sources, n_iterations, A, S, A_p, lam_p, 
+			ret_min_rmse=True)
+
+		# Check that GMCA returns the minimum RMSE solution
+		self.assertAlmostEqual(np.sum(S),np.sum(np.dot(np.linalg.pinv(A),X)))
+
+		# Reset A and S
+		A = np.ones(A_org.shape)
+		S = np.ones(S_org.shape)
+
+		# Re-run GMCA without ret_min_rmse
+		gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
+			ret_min_rmse=False)
+
+		# Check that GMCA does not return the min_rmse solution
+		self.assertNotEqual(np.sum(S),np.sum(np.dot(np.linalg.pinv(A),X)))
 
 
