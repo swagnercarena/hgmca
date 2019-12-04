@@ -2,7 +2,8 @@ import numpy as np
 import helpers
 
 # A simple code that generates some random toy data.
-def toy_data(dim, num_sources, sparsity=0.1, ret_A=False, ret_S=False, seed=None):
+def toy_data(dim, num_sources, sparsity=0.1, ret_A=False, ret_S=False, 
+	seed=None):
 	if seed is not None:
 		np.random.seed(seed)
 	A = np.random.rand(dim[0],num_sources)
@@ -23,7 +24,8 @@ def toy_data(dim, num_sources, sparsity=0.1, ret_A=False, ret_S=False, seed=None
 	return np.dot(A,S)
 
 # Generates toy data with significant local variation in the mixing matrix.
-def toy_data_local(dim, num_sources, lev, cmb_c, scales=1, sparsity=0.1, seed=None):
+def toy_data_local(dim, num_sources, lev, cmb_c, scales=1, sparsity=0.1, 
+	seed=None):
 	if seed is not None:
 		np.random.seed(seed)
 	# Begin by initializing the sources using random indices and respecting the
@@ -57,8 +59,8 @@ def toy_data_local(dim, num_sources, lev, cmb_c, scales=1, sparsity=0.1, seed=No
 		for scale in range(scales):
 			X_scale[scale][:,start:start+pix_per_patch] = np.dot(
 				A,S_scale[scale][:,start:start+pix_per_patch])
-			true_recon[scale][:,start:start+pix_per_patch] = np.outer(A[:,cmb_c],
-				S_scale[scale][cmb_c,start:start+pix_per_patch])
+			true_recon[scale][:,start:start+pix_per_patch] = np.outer(
+				A[:,cmb_c],S_scale[scale][cmb_c,start:start+pix_per_patch])
 		A_list.append(A)
 		start = start + pix_per_patch
 	
@@ -80,12 +82,14 @@ def toy_data_grouped_local(dim, num_sources, l_divs, n_clusters, cmb_c,
 	start = 0
 	# We want the cmb column to be consistent
 	A_cmb = np.random.rand(dim[0])
-	# We generate the matrices from which the individual clusters will be pulled
+	# We generate the matrices from which the individual clusters will be 
+	# pulled
 	A_clust_seed = np.random.rand(n_clusters,dim[0],num_sources)
 	clust = 0
 	mat_per_clust = int(np.ceil(len(l_divs)/n_clusters))
 	for div in l_divs:
-		A = (A_clust_seed[clust//mat_per_clust]+np.random.rand(dim[0],num_sources))
+		A = (A_clust_seed[clust//mat_per_clust]+np.random.rand(dim[0],
+			num_sources))
 		A[:,cmb_c] = A_cmb
 		helpers.A_norm(A)
 		X[:,start:start+div] = np.dot(A,S[:,start:start+div])
@@ -97,34 +101,4 @@ def toy_data_grouped_local(dim, num_sources, l_divs, n_clusters, cmb_c,
 	
 	return X,A_list,S,true_recon
 
-# Load wavelet coefficients for cmb simulation test data
-def cmb_test_data(nside_list=False,all_foreground_map=True,use_mask=False,
-	use_256=False, use_s2=False, use_s3=False, use_s4=False,
-	use_512=False):
-	if use_mask:
-		if use_256:
-			prefix = '/n/home09/swagnercarena/cmb_maps/input_maps/maps_256/mask_'
-		else:
-			prefix = '/n/home09/swagnercarena/cmb_maps/input_maps/mask_'
-	elif all_foreground_map:
-		if use_s2:
-			prefix = '/n/home09/swagnercarena/cmb_maps/input_maps/maps_s2/all_'
-		elif use_s3:
-			prefix = '/n/home09/swagnercarena/cmb_maps/input_maps/maps_s3/all_'
-		elif use_s4:
-			prefix = '/n/home09/swagnercarena/cmb_maps/input_maps/maps_s4/all_'
-		elif use_256:
-			prefix = '/n/home09/swagnercarena/cmb_maps/input_maps/maps_256/all_'
-		elif use_512:
-			prefix = '/n/home09/swagnercarena/cmb_maps/input_maps/maps_512/all_'
-		else:
-			prefix = '/n/home09/swagnercarena/cmb_maps/input_maps/gmca_test_all_'
-	else:
-		prefix = '/n/home09/swagnercarena/cmb_maps/input_maps/gmca_test_simple_'
-	if nside_list:
-		return (np.genfromtxt(prefix+'wav_coeff.txt'), 
-			np.genfromtxt(prefix+'A_cmb.txt'),
-			np.genfromtxt(prefix+'nside_list.txt').astype(np.int))
-	return (np.genfromtxt(prefix+'wav_coeff.txt'), 
-		np.genfromtxt(prefix+'A_cmb.txt'))
 

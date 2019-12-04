@@ -2,6 +2,39 @@ import numpy as np
 import numba
 
 @numba.jit(nopython=True)
+def update_S(S,A,A_R,R_i,A_i,lam_s,i):
+	"""	Update a row of S according to the closed form solution.
+	
+		Paramters:
+			S (np.array): The current value of the matrix S. The row i will be
+				updated.
+			A (np.array): The current value of the matrix A.
+			A_R (np.array): A pre-allocated array that will be used for the
+				A matrix calculation. Must have the shape (1,X.shape[1]).
+			R_i (np.array): The remainder of the data after removing the rest
+				of the sources.
+			A_i (np.array): A pre-allocated array that will be used for the
+				A matrix calculation. Must have the shape (A.shape[0],1).
+			lam_s (float): The lambda parameter for the sparsity l1 norm.
+			i (int): The index of the source to be updated.
+
+		Notes:
+			The S matrix row will be updated in place.
+	"""
+	# See paper for derivation of the update formula.
+	A_i += np.expand_dims(A[:,i], axis=1)
+	np.dot(A_i.T,R_i,out=A_R)
+	# We do a soft thresholding to deal with the fact that there is no
+	# gradient for the l1 norm.
+	# This is fine to do with for loops inside jit.
+	for j in range(A_R.shape[1]):
+		if abs(A_R[0,j]) < lam_s:
+			A_R[0,j] = 0
+	S[i] = A_R - lam_s*np.sign(A_R)
+	# Reset A_i
+	A_i *= 0 
+
+@numba.jit(nopython=True)
 def gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
 	enforce_nn_A = True, lam_s = 1, ret_min_rmse=True, min_rmse_rate=0,seed=0):
 	""" Run the base gmca algorithm on X using lasso shooting to solve for the
@@ -38,6 +71,7 @@ def gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p,
 			A and S will be updated in place.
 	"""
 
+	# Set the random seed for reproducability
 	if seed>0:
 		np.random.seed(seed)
 
@@ -57,6 +91,7 @@ def gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p,
 			R_i+=X
 			np.dot(A,S,out=AS)
 			R_i-=AS
+
 			# Carry out optimization calculation for column of A
 			S_i = np.expand_dims(S[i],axis=1)
 			A[:,i] = np.dot(R_i,S_i)[:,0] + lam_p[i] * A_p[:,i]
@@ -67,18 +102,9 @@ def gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p,
 				# Rescale A norm of A. Don't bother rescaling S since we are 
 				# about to recalculate it. 
 				A[:,i] = A[:,i]/np.linalg.norm(A[:,i])
-			# Now follow the update procedure for the source matrix.
-			A_i += np.expand_dims(A[:,i], axis=1)
-			np.dot(A_i.T,R_i,out=A_R)
-			# We do a soft thresholding to deal with the fact that there is no
-			# gradient for the l1 norm.
-			# This is fine to do with for loops inside jit.
-			for j in range(A_R.shape[1]):
-				if abs(A_R[0,j]) < lam_s:
-					A_R[0,j] = 0
-			S[i] = A_R - lam_s*np.sign(A_R)
-			# Reset A_i
-			A_i *= 0 
+
+			# Carry out the S update step.
+			update_S(S,A,A_R,R_i,A_i,lam_s,i)
 
 		if min_rmse_rate and iteration%min_rmse_rate == 0:
 			np.dot(np.linalg.pinv(A),X,out=S)
