@@ -138,6 +138,7 @@ class GmcaTests(unittest.TestCase):
 
 	def test_min_rmse_rate(self):
 		# Check that the minimum RMSE solution is returned
+
 		freq_dim = 10
 		pix_dim = 100
 		n_iterations = 50
@@ -172,17 +173,38 @@ class GmcaTests(unittest.TestCase):
 		# Check that GMCA does not return the min_rmse solution
 		self.assertNotEqual(np.sum(S),np.sum(np.dot(np.linalg.pinv(A),X)))
 
-	def test_lam_s(self):
+	def test_gmca_end_to_end(self):
+		# test that gmca works end to end, returning reasonable results
+		np.random.seed(5)
+		freq_dim = 10
+		pix_dim = 100
+		n_iterations = 50
+		n_sources = 5
+		lam_p = [0.0]*5
 
-		return
+		# Generate ground truth A and S 
+		A_org = np.abs(np.random.normal(size=(freq_dim,n_sources)))
+		S_org = np.random.normal(loc=1000,size=(n_sources,pix_dim))
+		X = np.dot(A_org,S_org)
 
-	def test_lam_p(self):
+		# Initialize A and S for GMCA
+		A_p = np.ones(A_org.shape)
+		A = np.ones(A_org.shape)
+		S = np.ones(S_org.shape)
 
-		return
-		
-	def test_update_A(self):
-		# Check that the A update step works as intended
-		
-		return
+		# Run GMCA
+		gmca_numba(np.array(X), n_sources, n_iterations, A, S, A_p, lam_p, 
+			ret_min_rmse=False, min_rmse_rate=n_iterations, enforce_nn_A=False)
 
+		err1 = np.sum(np.abs(np.dot(A,S)-X))
+		# Continue GMCA
+		gmca_numba(np.array(X), n_sources, n_iterations, A, S, A_p, lam_p, 
+			ret_min_rmse=False, min_rmse_rate=n_iterations, enforce_nn_A=False)
+		err2 = np.sum(np.abs(np.dot(A,S)-X))
 
+		self.assertGreater(err1,err2)
+
+		gmca_numba(np.array(X), n_sources, 200, A, S, A_p, lam_p, 
+			ret_min_rmse=False, min_rmse_rate=n_iterations, enforce_nn_A=False)
+
+		self.assertLess(np.sum(np.abs(np.dot(A,S)-X)),10e-3)
