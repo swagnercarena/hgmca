@@ -160,7 +160,8 @@ class GmcaTests(unittest.TestCase):
 			ret_min_rmse=False, min_rmse_rate=n_iterations)
 
 		# Check that GMCA returns the minimum RMSE solution
-		self.assertAlmostEqual(np.sum(S),np.sum(np.dot(np.linalg.pinv(A),X)))
+		self.assertAlmostEqual(np.max(np.abs(S-np.dot(np.linalg.pinv(A),X))),
+			0)
 
 		# Reset A and S
 		A = np.ones(A_org.shape)
@@ -171,7 +172,7 @@ class GmcaTests(unittest.TestCase):
 			ret_min_rmse=False, min_rmse_rate=n_iterations-1)
 
 		# Check that GMCA does not return the min_rmse solution
-		self.assertNotEqual(np.sum(S),np.sum(np.dot(np.linalg.pinv(A),X)))
+		self.assertGreater(np.mean(np.abs(S-np.dot(np.linalg.pinv(A),X))),0.1)
 
 	def test_gmca_end_to_end(self):
 		# test that gmca works end to end, returning reasonable results
@@ -207,4 +208,4 @@ class GmcaTests(unittest.TestCase):
 		gmca_numba(np.array(X), n_sources, 200, A, S, A_p, lam_p, 
 			ret_min_rmse=False, min_rmse_rate=n_iterations, enforce_nn_A=False)
 
-		self.assertLess(np.sum(np.abs(np.dot(A,S)-X)),10e-3)
+		self.assertLess(np.sum(np.abs(np.dot(A,S)-X)),1e-3)
