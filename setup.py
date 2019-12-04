@@ -12,7 +12,7 @@ readme = open("README.rst").read()
 
 PACKAGE_PATH = os.path.abspath(os.path.join(__file__, os.pardir))
 
-required_packages = ['numpy>=1.16.2','numba>=0.43.1']
+required_packages = ['numpy>=1.16.2','numba>=0.43.1','healpy>=1.12.9']
 tests_required_packages = ['pytest>=2.3']
 
 setup(
