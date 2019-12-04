@@ -1,5 +1,5 @@
-hgmca.gmca package
-==================
+hgmca.gmca
+==========
 
 .. automodule:: hgmca.gmca
     :members:

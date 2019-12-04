@@ -1,8 +1,5 @@
-hgmca package
-=============
-
-Subpackages
------------
+hgmca
+=====
 
 .. toctree::
 
