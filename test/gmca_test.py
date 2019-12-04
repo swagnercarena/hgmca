@@ -53,6 +53,11 @@ class GmcaTests(unittest.TestCase):
 				S_check -= lam_s*np.sign(S_check)
 				self.assertAlmostEqual(np.max(np.abs(S[i]-S_check)),0)
 
+	def test_update_A(self):
+		# Check that the A update step works as intended
+		
+		return
+
 
 
 
