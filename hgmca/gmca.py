@@ -71,6 +71,35 @@ def update_S(S,A,A_R,R_i,A_i,lam_s,i):
 	A_i *= 0
 
 @numba.jit(nopython=True)
+def calculate_remainder(X,S,A,AS,R_i,i):
+	""" Update a row of S according to the closed form solution.
+
+		Parameters:
+			X (np.array): A numpy array with dimensions number_of_maps (or 
+				frequencies) x number of data points (wavelet coefficients) per 
+				map.
+			S (np.array): The current value of the matrix S. The row i will be
+				updated.
+			A (np.array): The current value of the matrix A.
+			A_R (np.array): A pre-allocated array that will be used for the
+				remainder calculation. Must have the same shape as X.
+			R_i (np.array): The remainder of the data after removing the rest
+				of the sources.
+			i (int): The index of the source to be updated.
+		
+		Notes:
+			R_i will be updated in place.
+	"""
+	# Calculate the data explained by source i.
+	np.outer(A[:,i],S[i],out=R_i)
+	# Add in the data and subtract the contribution from all sources. Since
+	# we already added the contribution from source i, the net effect is to
+	# get the remainder after subtracting all sources except source i.
+	R_i+=X
+	np.dot(A,S,out=AS)
+	R_i-=AS
+
+@numba.jit(nopython=True)
 def gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
 	enforce_nn_A = True, lam_s = 1, ret_min_rmse=True, min_rmse_rate=0,seed=0):
 	""" Run the base gmca algorithm on X using lasso shooting to solve for the
@@ -123,10 +152,7 @@ def gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p,
 		for i in source_perm:
 			# Calculate a remainder term for the data yet unexplained by 
 			# the other sources. Avoid allocating new memory.
-			np.outer(A[:,i],S[i],out=R_i)
-			R_i+=X
-			np.dot(A,S,out=AS)
-			R_i-=AS
+			calculate_remainder(X,S,A,AS,R_i,i)
 
 			# Carry out optimization calculation for column of A
 			update_A(S,A,R_i,lam_p,A_p,enforce_nn_A,i)

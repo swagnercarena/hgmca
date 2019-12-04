@@ -20,3 +20,4 @@ Update Functions
 
    update_A
    update_S
+   calculate_remainder

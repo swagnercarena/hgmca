@@ -1,4 +1,4 @@
-from hgmca.gmca import update_S, update_A, gmca_numba
+from hgmca.gmca import update_S, update_A, gmca_numba, calculate_remainder
 from hgmca.helpers import A_norm
 import numpy as np
 import unittest
@@ -100,6 +100,40 @@ class GmcaTests(unittest.TestCase):
 					check_A /= np.linalg.norm(check_A)
 				self.assertAlmostEqual(np.max(np.abs(A[:,i] - check_A)),0)
 
+	def test_calculate_remainder(self):
+		# Check that the remainder is correctly calculated.
+		n_wavs = 1000
+		n_freqs = 8
+		n_sources = 5
+
+		# Start by generating a our A, S, and X matrices
+		S = np.ones((n_sources,n_wavs))*np.sqrt(n_freqs)
+		A = np.ones((n_freqs,n_sources))/np.sqrt(n_freqs)
+		X = np.ones((n_freqs,n_wavs))*n_sources
+
+		# Create the remainder matrix
+		R_i = np.zeros((n_freqs,n_wavs))
+
+		# Create AS for computation
+		AS = np.zeros(X.shape)
+
+		# Check that no matter the source, we get the correct remainder.
+		for i in range(n_sources):
+			calculate_remainder(X,S,A,AS,R_i,i)
+			self.assertAlmostEqual(np.max(np.abs(R_i-1)),0)
+
+		# Repeat the test with random matrices.
+		S = np.random.randn(n_sources*n_wavs).reshape((n_sources,n_wavs))
+		# Check that no matter the source, we get the correct remainder.
+		for i in range(n_sources):
+			calculate_remainder(X,S,A,AS,R_i,i)
+			check_Ri = np.copy(X)
+			for j in range(n_sources):
+				if i == j:
+					continue
+				check_Ri -= np.outer(A[:,j],S[j])
+			self.assertAlmostEqual(np.max(np.abs(R_i-check_Ri)),0)
+
 	def test_ret_min_rmse(self):
 		# Check that the minimum RMSE solution is returned
 		freq_dim = 10
@@ -172,10 +206,11 @@ class GmcaTests(unittest.TestCase):
 			ret_min_rmse=False, min_rmse_rate=n_iterations-1)
 
 		# Check that GMCA does not return the min_rmse solution
-		self.assertGreater(np.mean(np.abs(S-np.dot(np.linalg.pinv(A),X))),0.1)
+		self.assertGreater(np.mean(np.abs(S-np.dot(np.linalg.pinv(A),X))),
+			1e-4)
 
 	def test_gmca_end_to_end(self):
-		# test that gmca works end to end, returning reasonable results
+		# Test that gmca works end to end, returning reasonable results
 		np.random.seed(5)
 		freq_dim = 10
 		pix_dim = 100
