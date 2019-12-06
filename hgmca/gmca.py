@@ -202,8 +202,8 @@ def gmca(X, n_sources, n_iterations, A_init=None, S_init=None,A_p = None,
 				gmca optimization.
 
 		Returns:
-			A,S ((np.array,np.array)): Returns the mixing matrix A and the
-				source matrix S.
+			(np.array,np.array): Returns the mixing matrix A and the
+			source matrix S.
 
 		Notes:
 			A and S must be passed in as contiguous arrays. This can be done
