@@ -35,7 +35,7 @@ def update_A(S,A,R_i,lam_p,A_p,enforce_nn_A,i):
 		# about to recalculate it. 
 		A[:,i] = A[:,i]/np.linalg.norm(A[:,i])
 
-@numba.jit(nopython=True)
+@numba.jit(nopython=True,cache=True)
 def update_S(S, A, A_R, R_i, A_i, lam_s, i):
 	""" Update a row of S according to the closed form solution.
 

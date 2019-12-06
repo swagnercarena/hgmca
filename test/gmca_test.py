@@ -2,13 +2,15 @@ from hgmca import gmca
 from hgmca import helpers
 import numpy as np
 import unittest
-
+import warnings
 
 class GmcaTests(unittest.TestCase):
 	# A set of tests to verify that the basic functionality of gmca is working
 	# as expected.
 
 	def test_update_S(self):
+		warnings.filterwarnings("ignore")
+
 		# Check that the S update step works as intended.
 		n_wavs = 1000
 		n_freqs = 8
@@ -54,6 +56,8 @@ class GmcaTests(unittest.TestCase):
 				self.assertAlmostEqual(np.max(np.abs(S[i]-S_check)),0)
 		
 	def test_update_A(self):
+		warnings.filterwarnings("ignore")
+
 		# Check that the A update step works as intended
 		n_wavs = 1000
 		n_freqs = 8
@@ -101,6 +105,8 @@ class GmcaTests(unittest.TestCase):
 				self.assertAlmostEqual(np.max(np.abs(A[:,i] - check_A)),0)
 
 	def test_calculate_remainder(self):
+		warnings.filterwarnings("ignore")
+
 		# Check that the remainder is correctly calculated.
 		n_wavs = 1000
 		n_freqs = 8
@@ -135,6 +141,8 @@ class GmcaTests(unittest.TestCase):
 			self.assertAlmostEqual(np.max(np.abs(R_i-check_Ri)),0)
 
 	def test_ret_min_rmse(self):
+		warnings.filterwarnings("ignore")
+
 		# Check that the minimum RMSE solution is returned
 		freq_dim = 10
 		pix_dim = 100
@@ -171,6 +179,8 @@ class GmcaTests(unittest.TestCase):
 		self.assertNotEqual(np.sum(S),np.sum(np.dot(np.linalg.pinv(A),X)))
 
 	def test_min_rmse_rate(self):
+		warnings.filterwarnings("ignore")
+
 		# Check that the minimum RMSE solution is returned
 
 		freq_dim = 10
@@ -210,13 +220,16 @@ class GmcaTests(unittest.TestCase):
 			1e-4)
 
 	def test_gmca_end_to_end(self):
-		# Test that gmca works end to end, returning reasonable results
-		np.random.seed(5)
+		warnings.filterwarnings("ignore")
+
+		# Test that gmca works end to end, returning reasonable results.
+		rseed = 5
 		freq_dim = 10
 		pix_dim = 100
 		n_iterations = 50
 		n_sources = 5
-		lam_p = [0.0]*5
+		lam_s = 1
+		lam_p = [0.0]*n_sources
 
 		# Generate ground truth A and S 
 		A_org = np.abs(np.random.normal(size=(freq_dim,n_sources)))
@@ -230,22 +243,56 @@ class GmcaTests(unittest.TestCase):
 
 		# Run GMCA
 		gmca.gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
-			ret_min_rmse=False, min_rmse_rate=n_iterations, enforce_nn_A=False)
+			lam_s=lam_s, ret_min_rmse=False, min_rmse_rate=2*n_iterations, 
+			enforce_nn_A=False,seed = rseed)
 
+		#save sparsity of S for later test
+		sparsity_1 = np.sum(np.abs(S))
 		err1 = np.sum(np.abs(np.dot(A,S)-X))
+
 		# Continue GMCA
 		gmca.gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
-			ret_min_rmse=False, min_rmse_rate=n_iterations, enforce_nn_A=False)
+			lam_s=lam_s,ret_min_rmse=False, min_rmse_rate=2*n_iterations, 
+			enforce_nn_A=False,seed = rseed)
 		err2 = np.sum(np.abs(np.dot(A,S)-X))
 
 		self.assertGreater(err1,err2)
 
-		gmca.gmca_numba(X, n_sources, 200, A, S, A_p, lam_p, 
-			ret_min_rmse=False, min_rmse_rate=n_iterations, enforce_nn_A=False)
+		gmca.gmca_numba(X, n_sources, 200, A, S, A_p, lam_p, lam_s=lam_s,
+			ret_min_rmse=False, min_rmse_rate=2*n_iterations, 
+			enforce_nn_A=False, seed = rseed)
 
 		self.assertLess(np.sum(np.abs(np.dot(A,S)-X)),1e-3)
 
+		# Test that lam_s enforces sparsity end_to_end
+		lam_s = 10
+
+		A = np.ones(A_org.shape)
+		S = np.ones(S_org.shape)
+
+		gmca.gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
+			lam_s=lam_s, ret_min_rmse=False, min_rmse_rate=2*n_iterations, 
+			enforce_nn_A=False, seed = rseed)
+
+		#Save closeness to prior for later test
+		A_p_val = np.sum(np.abs(A-A_p))
+
+		self.assertLess(np.sum(np.abs(S)), sparsity_1)
+		# Test that lam_p enforcces prior end_to_end
+
+		A = np.ones(A_org.shape)
+		S = np.ones(S_org.shape)
+		lam_p = [100.0]*n_sources
+
+		gmca.gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
+			lam_s=lam_s, ret_min_rmse=False, min_rmse_rate=2*n_iterations, 
+			enforce_nn_A=False, seed = rseed)
+
+		self.assertLess(np.sum(np.abs(A-A_p)),A_p_val)
+
 	def test_random_seed(self):
+		warnings.filterwarnings("ignore")
+
 		# Test that setting the random seed leads to consistent results.
 		freq_dim = 10
 		pix_dim = 100
