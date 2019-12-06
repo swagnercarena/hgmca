@@ -35,7 +35,7 @@ def update_A(S,A,R_i,lam_p,A_p,enforce_nn_A,i):
 		A[:,i] = A[:,i]/np.linalg.norm(A[:,i])
 
 @numba.jit(nopython=True)
-def update_S(S,A,A_R,R_i,A_i,lam_s,i):
+def update_S(S, A, A_R, R_i, A_i, lam_s, i):
 	""" Update a row of S according to the closed form solution.
 
 		Parameters:
@@ -72,7 +72,7 @@ def update_S(S,A,A_R,R_i,A_i,lam_s,i):
 
 @numba.jit(nopython=True)
 def calculate_remainder(X,S,A,AS,R_i,i):
-	""" Update a row of S according to the closed form solution.
+	""" Calculate the Remainder term for a specific source.
 
 		Parameters:
 			X (np.array): A numpy array with dimensions number_of_maps (or 
@@ -101,7 +101,7 @@ def calculate_remainder(X,S,A,AS,R_i,i):
 
 @numba.jit(nopython=True)
 def gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
-	enforce_nn_A = True, lam_s = 1, ret_min_rmse=True, min_rmse_rate=0,seed=0):
+	enforce_nn_A=True, lam_s=1, ret_min_rmse=True, min_rmse_rate=0, seed=0):
 	""" Run the base gmca algorithm on X using lasso shooting to solve for the
 		closed form of the L1 sparsity term.
 

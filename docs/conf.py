@@ -40,11 +40,34 @@ release = version
 import sphinx_rtd_theme
 extensions = [
     'sphinx_rtd_theme',
+    'sphinx.ext.viewcode',
     'sphinx.ext.autodoc',
-    'sphinx.ext.githubpages',
     'sphinx.ext.napoleon',
     'sphinx.ext.autosummary',
+    'sphinx.ext.coverage', 
 ]
+
+# -- Try to auto-generate numba-decorated signatures -----------------
+
+import numba
+import inspect
+
+def process_numba_docstring(app, what, name, obj, options, signature, return_annotation):
+    if type(obj) is not numba.targets.registry.CPUDispatcher:
+        return (signature, return_annotation)
+    else:
+        original = obj.py_func
+        orig_sig = inspect.signature(original)
+
+        if (orig_sig.return_annotation) is inspect._empty:
+            ret_ann = None
+        else:
+            ret_ann = orig_sig.return_annotation.__name__
+
+        return (str(orig_sig), ret_ann)
+
+def setup(app):
+    app.connect('autodoc-process-signature', process_numba_docstring)
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -92,15 +115,8 @@ html_theme = 'sphinx_rtd_theme'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-# Custom sidebar templates, must be a dictionary that maps document names
-# to template names.
-#
-# The default sidebars (for documents that don't match any pattern) are
-# defined by theme itself.  Builtin themes are using these templates by
-# default: ``['localtoc.html', 'relations.html', 'sourcelink.html',
-# 'searchbox.html']``.
-#
-# html_sidebars = {}
+html_math_renderer = 'mathjax'
+
 
 
 # -- Options for HTMLHelp output ---------------------------------------------
@@ -136,46 +152,6 @@ latex_documents = [
     (master_doc, 'hgmca.tex', 'hgmca Documentation',
      'Sebastian Wagner-Carena', 'manual'),
 ]
-
-
-# -- Options for manual page output ------------------------------------------
-
-# One entry per manual page. List of tuples
-# (source start file, name, description, authors, manual section).
-man_pages = [
-    (master_doc, 'hgmca', 'hgmca Documentation',
-     [author], 1)
-]
-
-
-# -- Options for Texinfo output ----------------------------------------------
-
-# Grouping the document tree into Texinfo files. List of tuples
-# (source start file, target name, title, author,
-#  dir menu entry, description, category)
-texinfo_documents = [
-    (master_doc, 'hgmca', 'hgmca Documentation',
-     author, 'hgmca', 'One line description of project.',
-     'Miscellaneous'),
-]
-
-
-# -- Options for Epub output -------------------------------------------------
-
-# Bibliographic Dublin Core info.
-epub_title = project
-
-# The unique identifier of the text. This can be a ISBN number
-# or the project homepage.
-#
-# epub_identifier = ''
-
-# A unique identification for the text.
-#
-# epub_uid = ''
-
-# A list of files that should not be packed into the epub file.
-epub_exclude_files = ['search.html']
 
 
 # -- Extension configuration -------------------------------------------------
