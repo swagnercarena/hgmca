@@ -6,11 +6,18 @@
 :mod:`gmca` -- Generalized Morphological Component Analysis
 ===========================================================
 
+Main Function
+-------------
+.. autosummary::
+   :toctree: generated/
+
+   gmca
+
 Component Separation
 --------------------
 .. autosummary::
    :toctree: generated/
-
+   
    gmca_numba
 
 Update Functions

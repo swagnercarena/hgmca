@@ -1,5 +1,5 @@
-from hgmca.gmca import update_S, update_A, gmca_numba, calculate_remainder
-from hgmca.helpers import A_norm
+from hgmca import gmca
+from hgmca import helpers
 import numpy as np
 import unittest
 
@@ -30,7 +30,7 @@ class GmcaTests(unittest.TestCase):
 		for lam_s in lam_s_tests:
 			# Carry out the update step
 			for i in range(n_sources):
-				update_S(S,A,A_R,R_i,A_i,lam_s,i)
+				gmca.update_S(S,A,A_R,R_i,A_i,lam_s,i)
 
 			# Make sure that all the sources are identical and that they have 
 			# the correct value.
@@ -47,7 +47,7 @@ class GmcaTests(unittest.TestCase):
 		for lam_s in lam_s_tests:
 			# Carry out the update step
 			for i in range(n_sources):
-				update_S(S,A,A_R,R_i,A_i,lam_s,i)
+				gmca.update_S(S,A,A_R,R_i,A_i,lam_s,i)
 				S_check = np.dot(A[:,i],R_i)
 				S_check[np.abs(S_check)<lam_s] = 0
 				S_check -= lam_s*np.sign(S_check)
@@ -68,7 +68,7 @@ class GmcaTests(unittest.TestCase):
 
 		# Create an A_p to use for testing
 		A_p = np.random.randn(n_freqs*n_sources).reshape((n_freqs,n_sources))
-		A_norm(A_p)
+		helpers.A_norm(A_p)
 		enforce_nn_A = False
 
 		# Test results for various values of lam_p
@@ -76,7 +76,7 @@ class GmcaTests(unittest.TestCase):
 		for lam_p_val in lam_p_tests:
 			lam_p = [lam_p_val] * n_sources
 			for i in range(n_sources):
-				update_A(S,A,R_i,lam_p,A_p,enforce_nn_A,i)
+				gmca.update_A(S,A,R_i,lam_p,A_p,enforce_nn_A,i)
 
 				# Make sure that all the columns have the correct value.
 				check_A = np.ones(n_freqs) * n_wavs
@@ -90,7 +90,7 @@ class GmcaTests(unittest.TestCase):
 		for lam_p_val in lam_p_tests:
 			lam_p = [lam_p_val] * n_sources
 			for i in range(n_sources):
-				update_A(S,A,R_i,lam_p,A_p,enforce_nn_A,i)
+				gmca.update_A(S,A,R_i,lam_p,A_p,enforce_nn_A,i)
 
 				# Make sure that all the columns have the correct value.
 				check_A = np.ones(n_freqs) * n_wavs
@@ -119,14 +119,14 @@ class GmcaTests(unittest.TestCase):
 
 		# Check that no matter the source, we get the correct remainder.
 		for i in range(n_sources):
-			calculate_remainder(X,S,A,AS,R_i,i)
+			gmca.calculate_remainder(X,S,A,AS,R_i,i)
 			self.assertAlmostEqual(np.max(np.abs(R_i-1)),0)
 
 		# Repeat the test with random matrices.
 		S = np.random.randn(n_sources*n_wavs).reshape((n_sources,n_wavs))
 		# Check that no matter the source, we get the correct remainder.
 		for i in range(n_sources):
-			calculate_remainder(X,S,A,AS,R_i,i)
+			gmca.calculate_remainder(X,S,A,AS,R_i,i)
 			check_Ri = np.copy(X)
 			for j in range(n_sources):
 				if i == j:
@@ -153,7 +153,7 @@ class GmcaTests(unittest.TestCase):
 		S = np.ones(S_org.shape)
 
 		# Run GMCA
-		gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
+		gmca.gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
 			ret_min_rmse=True)
 
 		# Check that GMCA returns the minimum RMSE solution
@@ -164,7 +164,7 @@ class GmcaTests(unittest.TestCase):
 		S = np.ones(S_org.shape)
 
 		# Re-run GMCA without ret_min_rmse
-		gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
+		gmca.gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
 			ret_min_rmse=False)
 
 		# Check that GMCA does not return the min_rmse solution
@@ -190,7 +190,7 @@ class GmcaTests(unittest.TestCase):
 		S = np.ones(S_org.shape)
 
 		# Run GMCA
-		gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
+		gmca.gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
 			ret_min_rmse=False, min_rmse_rate=n_iterations)
 
 		# Check that GMCA returns the minimum RMSE solution
@@ -202,7 +202,7 @@ class GmcaTests(unittest.TestCase):
 		S = np.ones(S_org.shape)
 
 		# Re-run GMCA without ret_min_rmse
-		gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
+		gmca.gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
 			ret_min_rmse=False, min_rmse_rate=n_iterations-1)
 
 		# Check that GMCA does not return the min_rmse solution
@@ -229,18 +229,18 @@ class GmcaTests(unittest.TestCase):
 		S = np.ones(S_org.shape)
 
 		# Run GMCA
-		gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
+		gmca.gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
 			ret_min_rmse=False, min_rmse_rate=n_iterations, enforce_nn_A=False)
 
 		err1 = np.sum(np.abs(np.dot(A,S)-X))
 		# Continue GMCA
-		gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
+		gmca.gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
 			ret_min_rmse=False, min_rmse_rate=n_iterations, enforce_nn_A=False)
 		err2 = np.sum(np.abs(np.dot(A,S)-X))
 
 		self.assertGreater(err1,err2)
 
-		gmca_numba(X, n_sources, 200, A, S, A_p, lam_p, 
+		gmca.gmca_numba(X, n_sources, 200, A, S, A_p, lam_p, 
 			ret_min_rmse=False, min_rmse_rate=n_iterations, enforce_nn_A=False)
 
 		self.assertLess(np.sum(np.abs(np.dot(A,S)-X)),1e-3)
@@ -268,13 +268,13 @@ class GmcaTests(unittest.TestCase):
 		S3 = np.ones(S_org.shape)
 
 		# Run GMCA with different seeds.
-		gmca_numba(X, n_sources, n_iterations, A1, S1, A_p, lam_p, 
+		gmca.gmca_numba(X, n_sources, n_iterations, A1, S1, A_p, lam_p, 
 			ret_min_rmse=False, min_rmse_rate=n_iterations, enforce_nn_A=False,
 			seed=1)
-		gmca_numba(X, n_sources, n_iterations, A2, S2, A_p, lam_p, 
+		gmca.gmca_numba(X, n_sources, n_iterations, A2, S2, A_p, lam_p, 
 			ret_min_rmse=False, min_rmse_rate=n_iterations, enforce_nn_A=False,
 			seed=1)
-		gmca_numba(X, n_sources, n_iterations, A3, S3, A_p, lam_p, 
+		gmca.gmca_numba(X, n_sources, n_iterations, A3, S3, A_p, lam_p, 
 			ret_min_rmse=False, min_rmse_rate=n_iterations, enforce_nn_A=False,
 			seed=2)
 
@@ -286,4 +286,47 @@ class GmcaTests(unittest.TestCase):
 
 		self.assertGreater(np.mean(np.abs(A1-A3)),1e-4)
 		self.assertGreater(np.mean(np.abs(S1-S3)),1e-4)
+
+	def test_wrapper(self):
+		# Test that the wrapper returns the same results as the numba 
+		# implementation
+		freq_dim = 10
+		pix_dim = 100
+		n_iterations = 10
+		n_sources = 5
+		lam_p = [0.0]*5
+
+		X = np.random.normal(loc=1000,size=(freq_dim,pix_dim))
+
+		A_numba = np.random.normal(size=(freq_dim,n_sources))
+		helpers.A_norm(A_numba)
+		S_numba = np.ones((n_sources,pix_dim))
+
+		A_p = np.random.normal(size=(freq_dim,n_sources))
+		helpers.A_norm(A_p)
+
+		lam_s_vals = [0,10]
+		lam_p_vals = [0,1000]
+		min_rmse_rates = [0,2]
+		ret_min_rmse_vals = [True,False]
+		enforce_nn_A = True
+
+		for lam_s in lam_s_vals:
+			for lam_p_val in lam_p_vals:
+				lam_p = [lam_p_val] * n_sources
+				for min_rmse_rate in min_rmse_rates:
+					for ret_min_rmse in ret_min_rmse_vals:
+						A_init = np.copy(A_numba)
+						S_init = np.copy(S_numba)
+						A,S = gmca.gmca(X, n_sources, n_iterations, A_init, 
+							S_init, A_p, lam_p, enforce_nn_A, lam_s, 
+							ret_min_rmse,min_rmse_rate, seed=2)
+						gmca.gmca_numba(X, n_sources, n_iterations, A_numba, 
+							S_numba, A_p, lam_p, enforce_nn_A, lam_s, 
+							ret_min_rmse, min_rmse_rate, seed=2)
+						self.assertAlmostEqual(np.max(np.abs(A_numba-A)),
+							0)
+						self.assertAlmostEqual(np.max(np.abs(S_numba-S)),
+							0)
+
 

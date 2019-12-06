@@ -1,5 +1,6 @@
 import numpy as np
 import numba
+from hgmca import helpers
 
 @numba.jit(nopython=True)
 def update_A(S,A,R_i,lam_p,A_p,enforce_nn_A,i):
@@ -102,8 +103,8 @@ def calculate_remainder(X,S,A,AS,R_i,i):
 @numba.jit(nopython=True)
 def gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
 	enforce_nn_A=True, lam_s=1, ret_min_rmse=True, min_rmse_rate=0, seed=0):
-	""" Run the base gmca algorithm on X using lasso shooting to solve for the
-		closed form of the L1 sparsity term.
+	""" Run a numba implementation of the base gmca algorithm on X using lasso 
+		shooting to solve for the closed form of the L1 sparsity term.
 
 		Parameters:
 			X (np.array): A numpy array with dimensions number_of_maps (or 
@@ -168,3 +169,80 @@ def gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p,
 	if ret_min_rmse:
 		np.dot(np.linalg.pinv(A),X,out=S)
 
+def gmca(X, n_sources, n_iterations, A_init=None, S_init=None,A_p = None, 
+	lam_p = None, enforce_nn_A=True, lam_s=1, ret_min_rmse=True, 
+	min_rmse_rate=0, seed=0):
+	""" Run the base gmca algorithm on X.
+
+		Parameters:
+			X (np.array): A numpy array with dimensions number_of_maps (or 
+				frequencies) x number of data points (wavelet coefficients) per 
+				map.
+			n_sources (int): the number of sources to attempt to extract from the
+				data.
+			n_iterations (int): the number of iterations of coordinate descent to 
+				conduct.
+			A_init (np.array): An initial value for the mixing matrix with
+				dimensions (X.shape[0],n_sources). If set to None 
+			S_init (np.array): An initial value for the source matrix with
+				dimensions (n_sources,X.shape[1]).
+			A_p (np.array): A matrix prior for the CGMCA calculation. 
+			lam_p ([float,...]): A n_sources long array of prior for each of 
+				the columns of A_p. This allows for a different lam_p to be 
+				applied to different columns of A_p.
+			enforce_nn_A (bool): a boolean that determines if the mixing matrix 
+				will be forced to only have non-negative values.
+			lam_s (float): The lambda parameter for the sparsity l1 norm.
+			ret_min_rmse (bool): A boolean parameter that decides if the minimum 
+				rmse error solution for S will be returned. This will give best 
+				CMB reconstruction but will not return the minimum of the loss
+				function.
+			min_rmse_rate (int): How often the source matrix will be set to the 
+				minimum rmse solution. 0 will never return min_rmse within the 
+				gmca optimization.
+
+		Returns:
+			A,S ((np.array,np.array)): Returns the mixing matrix A and the
+				source matrix S.
+
+		Notes:
+			A and S must be passed in as contiguous arrays. This can be done
+			with np.ascontiguousarray.
+	"""
+
+	# Set up A and S.
+	if A_init is not None:
+		A = A_init
+	else:
+		# Initialize A using a quick and dirty version of PCA to improve speed.
+		X_sq = np.matmul(X,X.T)
+		_, eig_v = np.linalg.eig(X_sq)
+		A = eig_v[:,0:n_sources]
+		# Ensure that the memory is stored contiguously in memory.
+		A = np.ascontiguousarray(np.real(A))
+		# Deal with the potential edge case of having an entirerly negative 
+		# column left over from PCA.
+		if enforce_nn_A:
+			for i in range(len(A[0])):
+				if min(A[:,i]) < 0:
+					A[:,i] = 1
+		helpers.A_norm(A)
+	# We can now initialize S using our initial value for A unless an S value
+	# is provided.
+	if S_init is None:
+		S = np.matmul(np.linalg.pinv(A),X)
+	else:
+		S = S_init
+
+	# First deal with the case where no lam_p or A_p is passed in.
+	if A_p is None or lam_p is None:
+		A_p = np.zeros(A.shape)
+		lam_p = np.zeros(n_sources)
+
+	# Call gmca_numba
+	gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
+		enforce_nn_A=enforce_nn_A, lam_s=lam_s, ret_min_rmse=ret_min_rmse, 
+		min_rmse_rate=min_rmse_rate, seed=seed)
+
+	# Return the mixing matrix and the source.
+	return A,S
