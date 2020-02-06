@@ -32,7 +32,7 @@ transform, you will need to install ``s2let``. The instructions for installation
 	$ brew info FFTW
 	$ export FFTW=<FFTW path>
 
-3. Download `Healpix <https://https://sourceforge.net/projects/healpix/files/Healpix_3.31/Healpix_3.31_2016Aug26.tar.gz/download>` (note this is version 3.3.1. More modern versions do not work with s2let). Now run the following (we will provide excruciating detail here since this can't be done with a simple brew command). Note that on MAC I used gcc 9.2.0 (gcc-9) and gfortran 9.2.0 (gfortran-9):
+3. Download `Healpix <https://sourceforge.net/projects/healpix/files/Healpix_3.31/Healpix_3.31_2016Aug26.tar.gz/download>` (note this is version 3.3.1. More modern versions do not work with s2let). Now run the following (we will provide excruciating detail here since this can't be done with a simple brew command). Note that on MAC I used gcc 9.2.0 (gcc-9) and gfortran 9.2.0 (gfortran-9):
 
 .. code-block:: bash
 
