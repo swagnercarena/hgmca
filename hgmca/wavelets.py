@@ -12,9 +12,9 @@ class AxisymWaveletTransformation(object):
 			band_lim (int): The bandlimit for decomposition
 			s2let_path (str): The path to the compiled s2let directory.
 			samp (int): The sampling scheme to be used for the wavelet maps. 0
-				is minimal sampling, 1 is full resolution sampling, and 2 is 
-				oversampling (wavelet maps will have larger nside than the 
-				original map). 0 should almost always be used.
+			is minimal sampling, 1 is full resolution sampling, and 2 is 
+			oversampling (wavelet maps will have larger nside than the 
+			original map). 0 should almost always be used.
 	"""
 	def __init__(self, wav_b, min_scale, band_lim, s2let_path = '../s2let', 
 		samp=0):
@@ -22,7 +22,7 @@ class AxisymWaveletTransformation(object):
 		self.wav_b = wav_b
 		self.min_scale = min_scale
 		self.band_lim = band_lim
-		self.s2let_bin = s2let_path + '/bin'
+		self.s2let_bin = s2let_path + '/bin/'
 		self.samp = samp
 		# Initialize the nside list which will be filled as we write a map.
 		self._nside_list = []
@@ -31,7 +31,7 @@ class AxisymWaveletTransformation(object):
 		""" Set the value of nside list.
 
 			Parameters:
-				nside_list [int,...]: The values to set self._nside_list to
+				nside_list ([int,...]): The values to set self._nside_list to
 		"""
 		self._nside_list = nside_list
 
@@ -58,7 +58,7 @@ class AxisymWaveletTransformation(object):
 		"""
 		subprocess.call([self.s2let_bin + 's2let_transform_analysis_hpx_multi', 
 			orig_map_file, str(self.wav_b), str(self.min_scale), 
-			str(self.band_lim), wav_map_prefix, str(self.samp)],stdout=stdout)
+			str(self.band_lim), wav_map_prefix, str(self.samp)])
 
 	def _s2let_generate_recon_map(self, wav_map_prefix, recon_map_file, nside, 
 		stdout=None):
@@ -108,14 +108,10 @@ class AxisymWaveletTransformation(object):
 				wav_map_prefix (str): The prefix (including directory) where 
 					the wavelet fits will are saved.
 			Return:
-				(np.array): A 2D array with dimensions (n_freqs,n_wavs).
+				np.array: A 2D array with dimensions n_freqs x n_wavs.
 		"""
-		# If nside_list is already initialized, it's possible this class
-		# was already used to generate wavelet coefficients. Warn that the
-		# nside list will be reset.
-		if not self._nside_list:
-			warnings.warn('nside_list is already set. Overwritting it.')
-			self._nside_list = []
+		# Reset nside_list
+		self._nside_list = []
 		# Initialize the wavelet coefficients array.
 		wav_coeff = np.array([])
 		# Read the scale file
@@ -149,7 +145,7 @@ class AxisymWaveletTransformation(object):
 			Parameters:
 				wav_map_prefix (str): The prefix (including directory) where 
 					the wavelet fits will are saved.
-				wav_coeff (np.array): A 2D array with the wavelet coefficients
+				wav_coeff (np.array): A 1D array with the wavelet coefficients
 					to be written into fits files.
 		"""
 		# Isolate the coefficients in each map, and reorder them back to 
@@ -174,9 +170,10 @@ class AxisymWaveletTransformation(object):
 				hpx_map_file (str): The path to the healpix map.
 				wav_map_prefix (str): The prefix (including directory) to save
 					the output wavelet fits files to.
-			Returns:
-				A numpy array with the wavelet coefficients with dimensions
-					(n_freq,n_wavs)
+
+			Return:
+				np.array: A numpy array with the wavelet coefficients with 
+				dimensions n_wavs
 		"""
 		# Supress the output of our commamndline calls for readability.
 		FNULL = open(os.devnull,'w')
@@ -201,7 +198,7 @@ class AxisymWaveletTransformation(object):
 				wav_map_prefix (str): The prefix (including directory) to save
 					the output wavelet fits files to.
 				wav_coeff (np.array): A numpy array with the wavelet 
-					coefficients with dimensions (n_freq,n_wavs).
+					coefficients with dimensions n_freq x n_wavs.
 
 			Notes:
 				The nside must be specified since the variable sampling
