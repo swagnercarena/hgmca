@@ -1,13 +1,20 @@
 ===============================================================================================
 hgmca - A hierarchical component separation algorithm based on sparsity in the wavelet basis.
 ===============================================================================================
-
 .. image:: https://travis-ci.com/swagnercarena/hgmca.png?branch=master
 	:target: https://travis-ci.org/swagnercarena/hgmca
 
 .. image:: https://readthedocs.org/projects/hgmca/badge/?version=latest
 	:target: https://hgmca.readthedocs.io/en/latest/?badge=latest
 	:alt: Documentation Status
+
+.. image:: https://img.shields.io/badge/license-MIT-blue.svg?style=flat
+    :target: https://github.com/swagnercarena/hgmca/blob/s2let/LICENSE
+
+.. image:: https://img.shields.io/badge/arXiv-1910.08077%20-yellowgreen.svg
+    :target: https://arxiv.org/abs/1910.08077
+
+``HGMCA`` is a source separation package primarily aimed towards use on the Cosmic Microwave Background. The software package includes implementations of gmca and hgmca as described in `Wagner-Carena et al 2019 <https://arxiv.org/abs/1910.08077>`_. For ease of use, we have included a number of `demos <https://github.com/swagnercarena/hgmca/blob/s2let/demos>`_ with the code.
 
 Installation (~15 minutes)
 --------------------------
