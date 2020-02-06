@@ -15,7 +15,7 @@ Installation (~15 minutes)
 If you intend to use gmca or hgmca together with the scale discretized wavelet
 transform, you will need to install ``s2let``. The instructions for installation on the `s2let website <http://astro-informatics.github.io/s2let/scratch_install.html>`_ will not work for us, so we have detailed our own here. While the installation will take a few minutes, the instructions below should be comprehensive. Note that ``<some path>`` means that you must replace that input with the path on your computer.
 
-1. Install CFITSIO using brew (or equivalent). Use brew info to get the path.
+1. Install CFITSIO using brew (or equivalent). Use brew info to get the path. To install brew follow `these instructions <https://docs.brew.sh/Installation>`_.
 
 
 .. code-block:: bash
