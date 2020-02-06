@@ -13,7 +13,7 @@ Installation (~15 minutes)
 --------------------------
 
 If you intend to use gmca or hgmca together with the scale discretized wavelet
-transform, you will need to install ``s2let``. The instructions for installation can be found on the `s2let website <http://astro-informatics.github.io/s2let/scratch_install.html>`. While the installation will take a few minutes, the instructions below should be comprehensive enough. Note that <some path> means that you must replace that input with the path on your computer.
+transform, you will need to install ``s2let``. The instructions for installation on the `s2let website <http://astro-informatics.github.io/s2let/scratch_install.html>`_ will not work for us, so we have detailed our own here. While the installation will take a few minutes, the instructions below should be comprehensive. Note that ``<some path>`` means that you must replace that input with the path on your computer.
 
 1. Install CFITSIO using brew (or equivalent). Use brew info to get the path.
 
@@ -32,7 +32,7 @@ transform, you will need to install ``s2let``. The instructions for installation
 	$ brew info FFTW
 	$ export FFTW=<FFTW path>
 
-3. Download `Healpix <https://sourceforge.net/projects/healpix/files/Healpix_3.31/Healpix_3.31_2016Aug26.tar.gz/download>` (note this is version 3.3.1. More modern versions do not work with s2let). Now run the following (we will provide excruciating detail here since this can't be done with a simple brew command). Note that on MAC I used gcc 9.2.0 (gcc-9) and gfortran 9.2.0 (gfortran-9):
+3. Download `Healpix <https://sourceforge.net/projects/healpix/files/Healpix_3.31/Healpix_3.31_2016Aug26.tar.gz/download>`_ (note this is version 3.3.1. More modern versions do not work with s2let). Now run the following (we will provide excruciating detail here since this can't be done with a simple brew command). Note that on MAC I used gcc 9.2.0 (gcc-9) and gfortran 9.2.0 (gfortran-9):
 
 .. code-block:: bash
 
@@ -72,7 +72,7 @@ Feel free to run
 
 .. code-block:: bash
 
-	make test
+	$ make test
 
 to make sure everything is installed correctly.
 
