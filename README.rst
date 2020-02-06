@@ -9,6 +9,14 @@ hgmca - A hierarchical component separation algorithm based on sparsity in the w
 	:target: https://hgmca.readthedocs.io/en/latest/?badge=latest
 	:alt: Documentation Status
 
+.. image:: https://img.shields.io/badge/license-MIT-blue.svg?style=flat
+    :target: https://github.com/swagnercarena/hgmca/LICENSE
+
+.. image:: https://img.shields.io/badge/arXiv-1910.08077%20-yellowgreen.svg
+    :target: https://arxiv.org/abs/1910.08077
+
+``HGMCA`` is a package for source separation for the CMB. The software package includes implementations of gmca and hgmca described in `Wagner-Carena et al 2019 <https://arxiv.org/abs/1910.08077>`_,
+
 Installation (~15 minutes)
 --------------------------
 
