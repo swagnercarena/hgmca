@@ -13,7 +13,7 @@ Installation (~15 minutes)
 --------------------------
 
 If you intend to use gmca or hgmca together with the scale discretized wavelet
-transform, you will need to install ``s2let``. The instructions for installation can be found on the `s2let website <http://astro-informatics.github.io/s2let/scratch_install.html>`. While the installation will take a few minutes, the instructions below should be comprehensive enough 
+transform, you will need to install ``s2let``. The instructions for installation can be found on the `s2let website <http://astro-informatics.github.io/s2let/scratch_install.html>`. While the installation will take a few minutes, the instructions below should be comprehensive enough. Note that <some path> means that you must replace that input with the path on your computer.
 
 1. Install CFITSIO using brew (or equivalent). Use brew info to get the path.
 
@@ -32,45 +32,43 @@ transform, you will need to install ``s2let``. The instructions for installation
 	$ brew info FFTW
 	$ export FFTW=<FFTW path>
 
-3. Download `Healpix <https://sourceforge.net/projects/healpix/>` and then run the following (we will provide excruciating detail here since this can't be done with a simple brew command):
+3. Download `Healpix <https://https://sourceforge.net/projects/healpix/files/Healpix_3.31/Healpix_3.31_2016Aug26.tar.gz/download>` (note this is version 3.3.1. More modern versions do not work with s2let). Now run the following (we will provide excruciating detail here since this can't be done with a simple brew command). Note that on MAC I used gcc 9.2.0 (gcc-9) and gfortran 9.2.0 (gfortran-9):
 
 .. code-block:: bash
 
 	$ cd <Healpix path>
 	$ ./configure
 	$ Enter your choice (configuration of packages can be done in any order) [0]: 2
-	$ Should I attempt to create these directories (y|n) [y]? y
-	$ enter C compiler you want to use [gcc]: <compiler>
-	$ enter options for C compiler [-O2 -Wall]:
-	$ enter archive creation (and indexing) command [ar -rsv]: 
-	$ do you want the HEALPix/C library to include CFITSIO-related functions ? (y|n) [y]: y
-	$ enter full name of cfitsio library [libcfitsio.a]: libcfitsio.a
-	$ enter location of cfitsio library [/usr/local/lib]: <CFITSIO path>
+	$ Should I attempt to create these directories (Y|n)? Y
+	$ enter C compiler you want to use (gcc): <compiler>
+	$ enter options for C compiler (-O2 -Wall):
+	$ enter archive creation (and indexing) command (ar -rsv):  
+	$ do you want the HEALPix/C library to include CFITSIO-related functions ? (Y|n): Y
+	$ enter full name of cfitsio library (libcfitsio.a): 
+	$ enter location of cfitsio library (/usr/local/lib): <CFITSIO path>/lib
 	$ enter location of cfitsio header fitsio.h [<CFITSIO path>]:
-	$ A static library is produced by default. Do you also want a shared library ? (y|n) [n]: n
+	$ A static library is produced by default. Do you also want a shared library ? (y|N)
 	$ Do you want this modification to be done (y|n)? [n]: y
-	$ Enter your choice (configuration of packages can be done in any order) [0]: 3
-	$ enter C compiler you want to use [gcc]: <compiler>
-	$ [-O3 -ffast-math -march=native -fopenmp]: 
-	$ enter name of your F90 compiler [gfortran]: <gfortran compiler>
-	$ enter suffix for directories []:
-	$ Should I attempt to create these directories (y|n) [y]? y
-	$ enter compilation flags for gfortran-9 compiler [-I$(F90_INCDIR)]:
-	$ enter optimisation flags for gfortran-9 compiler [-O3]:
-	$ enter name of your C compiler [<compiler>]:
-	$ enter compilation/optimisation flags for C compiler [-O3 -std=c99 -I$(HEALPIX)/include]: 
-	$ enter command for library archiving [libtool -static -s -o]:
-	$ enter full name of cfitsio library [libcfitsio.a]:
-	$ enter location of cfitsio library [/usr/local/lib]: <CFITSIO path>
-	$ (this assumes that PGPLOT is already installed on your computer) (y|n) [n]: n
-	$ Enter choice                                      [1]: 1
-	$ (recommended if the Healpix-F90 library is to be linked to external codes) (y|n) [y]: y
-	$ A static library is produced by default. Do you rather want a shared/dynamic library ? (y|n) [n]: n
-	$ Enter your choice (configuration of packages can be done in any order) [0]: 0
+	$ Enter your choice (configuration of packages can be done in any order): 3
+	$ enter name of your F90 compiler (): <gfortran compiler>
+	$ enter suffix for directories (): 
+	$ Should I attempt to create these directories (Y|n)? Y
+	$ enter compilation flags for gfortran-9 compiler (-I$(F90_INCDIR) -DGFORTRAN -fno-second-underscore):
+	$ enter optimisation flags for gfortran-9 compiler (-O3):
+	$ enter name of your C compiler (gcc): <compiler>
+	$ enter compilation/optimisation flags for C compiler (-O3 -std=c99 -DgFortran):
+	$ enter command for library archiving (libtool -static -s -o): 
+	$ enter full name of cfitsio library (libcfitsio.a): 
+	$ enter location of cfitsio library (<CFITSIO path>/lib):
+	$ (this assumes that PGPLOT is already installed on your computer) (y|N) N
+	$ Enter choice                                      (1): 1
+	$ (recommended if the Healpix-F90 library is to be linked to external codes)  (Y|n): Y
+	$ A static library is produced by default. Do you rather want a shared/dynamic library ? (y|N) N
+	$ Enter your choice (configuration of packages can be done in any order): 0
 	$ make
 	$ export HEALPIX=<HEALPIX path>
 
-Note that on MAC I used gcc 9.2.0 and gfortran 9.2.0. Feel free to run
+Feel free to run
 
 .. code-block:: bash
 
