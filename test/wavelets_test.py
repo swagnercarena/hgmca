@@ -23,7 +23,7 @@ class TestAxisymWaveletTransformation(unittest.TestCase):
 		wav_coeff = wav_t.get_wavelet_coeff(hpx_map_file,wav_map_prefix)
 		wav_t.get_map_from_wavelet_coeff(recon_map_file,nside,wav_map_prefix,
 			wav_coeff)
-		#wav_t.clean_prefix(wav_map_prefix)
+		wav_t._clean_prefix(wav_map_prefix)
 		orig_map = hp.read_map(hpx_map_file,verbose=False)
 		recon_map = hp.read_map(recon_map_file,verbose=False)
 
@@ -49,14 +49,14 @@ class TestAxisymWaveletTransformation(unittest.TestCase):
 		wav_coeff = wav_t_128.get_wavelet_coeff(hpx_map_file,wav_map_prefix)
 		wav_t_128.get_map_from_wavelet_coeff(small_b_lim_map,nside,wav_map_prefix,
 			wav_coeff)
-		#wav_t_128.clean_prefix(wav_map_prefix)
+		wav_t_128._clean_prefix(wav_map_prefix)
 
 		wav_t_420 = wavelets.AxisymWaveletTransformation(wav_b,min_scale,
 			420,samp=samp)
 		wav_coeff = wav_t_420.get_wavelet_coeff(hpx_map_file,wav_map_prefix)
 		wav_t_420.get_map_from_wavelet_coeff(large_b_lim_map,nside,wav_map_prefix,
 			wav_coeff)
-		#wav_t_420.clean_prefix(wav_map_prefix)
+		wav_t_420._clean_prefix(wav_map_prefix)
 
 		s_b_lim_hpx_map = hp.read_map(small_b_lim_map,verbose=False)
 		l_b_lim_hpx_map = hp.read_map(large_b_lim_map,verbose=False)
@@ -89,17 +89,17 @@ class TestAxisymWaveletTransformation(unittest.TestCase):
 		wav_coeff = wav_t_s0.get_wavelet_coeff(hpx_map_file,wav_map_prefix)
 		wav_t_s0.get_map_from_wavelet_coeff(sub_samp_map,nside,wav_map_prefix,
 			wav_coeff)
-		#wav_t_s0.clean_prefix(wav_map_prefix)
+		wav_t_s0._clean_prefix(wav_map_prefix)
 
 		wav_coeff = wav_t_s1.get_wavelet_coeff(hpx_map_file,wav_map_prefix)
 		wav_t_s1.get_map_from_wavelet_coeff(full_samp_map,nside,wav_map_prefix,
 			wav_coeff)
-		#wav_t_s1.clean_prefix(wav_map_prefix)
+		wav_t_s1._clean_prefix(wav_map_prefix)
 
 		wav_coeff = wav_t_s2.get_wavelet_coeff(hpx_map_file,wav_map_prefix)
 		wav_t_s2.get_map_from_wavelet_coeff(over_samp_map,nside,wav_map_prefix,
 			wav_coeff)
-		#wav_t_s2.clean_prefix(wav_map_prefix)
+		wav_t_s2._clean_prefix(wav_map_prefix)
 
 		s0_hpx_map = hp.read_map(sub_samp_map,verbose=False)
 		s1_hpx_map = hp.read_map(full_samp_map,verbose=False)
