@@ -1,6 +1,6 @@
 import numpy as np
 import healpy as hp
-import subprocess, os, sys, warnings
+import subprocess, os, sys, math, warnings
 
 class AxisymWaveletTransformation(object):
 	""" Wavelet transformation class that interfaces with s2let's axisym wavelet
@@ -555,11 +555,11 @@ class AxisymWaveletTransformation(object):
 
 	def hgmca_generate_A_hier(self, m_level, A_init):
 		""" Given a maximum level of subdivision will return a list of numpy
-			matrices the represent the hiearchy of mixing matrices.
+			matrices the represent the hierarchy of mixing matrices.
 
 			Parameters:
 				m_level (int): the maximum level of subdivision to be considered in the
-					hiearchy
+					hierarchy
 			Return:
 				list: A list with m_level+1 entries with each entry having
 					dimensions [n_1,n_2,n_3,...n_(m_level),A.shape] with n_l being
@@ -574,7 +574,7 @@ class AxisymWaveletTransformation(object):
 			A_hier.append(A_temp)
 		return A_hier
 
-			def hgmca_get_mu_dict(self,X_scale,m_level):
+	def hgmca_get_mu_dict(self,X_scale,m_level):
 		""" Generates a dictionary that given a maximum level and a realization
 			of the data by scale will return a dictionary that, given a level,
 			returns the sources that should be considered at that scale.
@@ -596,3 +596,94 @@ class AxisymWaveletTransformation(object):
 			else:
 				mu_dict[lev] = indices
 		return mu_dict
+
+	def hgmca_get_A_prior(self,lev,patch,A_hier,scale_lam_p=False):
+		""" Given the matrix hierarchy and the level and patch of a specific
+			mixing matrix will return the sum of mixing matrices connected in
+			the graphical model to that matrix. Will also return the number of
+			matrices that were summed for normalization.
+
+			Parameters:
+				lev (int): the level of the matrix for which the prior should be 
+					calculated
+				patch (int): the patch of the aformentioned matrix
+				A_hier (np.array): The hierarchy structure containing all the matrices
+				scale_lam_p (boolean): If true, then the prior will be calculated
+					assuming lam_p is scaled by Area patch / Area total.
+					This will be factored into A_p s.t. it absorbs the
+					lam_p normalization.
+
+			Return:
+				np.array: The sum of the connected matrices
+		"""
+		# If A_hier is only one level deep, return None to indicate no prior
+		if len(A_hier) == 1:
+			return None
+		# Take the shape from the level 0 matrix
+		A_p = np.zeros(A_hier[0][0].shape)
+		# Add the prior related to the previous level
+		if lev > 0:
+			# Assume lam_p for the first vertex and then lam_p times
+			# Area patch / Area of patch at level 1 for the rest of
+			# the lam_p
+			if scale_lam_p:
+				scaling = 12 / self.hgmca_get_n_patches(None,lev)
+			else:
+				scaling = 1
+			if lev==1:
+				A_p = A_p + scaling*A_hier[lev-1][0]
+			else:
+				A_p = A_p + scaling*A_hier[lev-1][patch//4]
+		# Add the prior related to the next level
+		if lev == 0:
+			# No need to calculate scaling here. It's 1 by definition.
+			for child in range(12):
+				A_p = A_p+ A_hier[lev+1][patch*4+child]
+		elif lev < len(A_hier)-1:
+			# See notes on scaling for lev>0 trigger. Divide 3
+			# instead of 12 since there are 4 times as many
+			# patches for the children
+			if scale_lam_p:
+				scaling = 3 / self.hgmca_get_n_patches(None,lev)
+			else:
+				scaling = 1
+			for child in range(4):
+				A_p = A_p+ scaling*A_hier[lev+1][patch*4+child]
+		return A_p
+
+	def hgmca_A_loss(self,A_hier,lam_p,scale_lam_p=False):
+		"""	Calculate the loss term associated the hierarchy of mixing matrices.
+
+			Parameters:
+				A_hier: The hierarchy structure for the mixing matrices
+
+			Return:
+				float: The loss corresponding to the hierarchyo f mixing matrices.
+		"""
+		# We iterate through each level and calculate the contribution to the
+		# loss by the children of each node (that way we avoid double counting)
+		loss = 0
+		for lev in range(len(A_hier)-1):
+			# Deal with the special case of level 0
+			if lev == 0:
+				patch = 0
+				for child in range(12):
+					# Loss is just the L2 norm of 
+					loss += np.linalg.norm(np.sqrt(lam_p)*(
+						A_hier[lev+1][self.hgmca_get_A_hier_index(
+							lev+1,patch*4+child)] - 
+						A_hier[lev][self.hgmca_get_A_hier_index(lev,patch)]))**2
+			else:
+				n_patches = self.hgmca_get_n_patches(None,lev)
+				if scale_lam_p:
+					scaling = 3/n_patches
+				else:
+					scaling = 1
+				for patch in range(n_patches):
+					for child in range(4):
+						loss += np.linalg.norm(np.sqrt(scaling*lam_p)*(
+							A_hier[lev+1][self.hgmca_get_A_hier_index(
+								lev+1,patch*4+child)] - 
+							A_hier[lev][self.hgmca_get_A_hier_index(
+								lev,patch)]))**2
+		return loss
