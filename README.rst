@@ -97,7 +97,7 @@ to make sure everything is installed correctly.
 .. code-block:: bash
 
 	$ export SSHT=<SSHT path>
-	$ export SO3=<S03 path>
+	$ export SO3=<SO3 path>
 	$ export S2LET=<S2LET path>
 	$ export HGMCA=<HGMCA path>
 
