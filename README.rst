@@ -92,7 +92,7 @@ to make sure everything is installed correctly.
 	$ git clone https://github.com/astro-informatics/s2let
 	$ git clone https://github.com/swagnercarena/hgmca
 
-5. Export the path to each of the four new directories
+5. Export the path to each of the four new directories. Note this is SO3 not S03 (i.e. o not 0).
 
 .. code-block:: bash
 
