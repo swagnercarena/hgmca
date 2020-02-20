@@ -26,6 +26,7 @@ setup(
     author_email='sebaswagner@outlook.com',
     url='https://github.com/swagnercarena/hgmca',
     packages=find_packages(PACKAGE_PATH),
+    package_data={'s2letbin': ['*']},
     package_dir={'hgmca': 'hgmca'},
     include_package_data=True,
     install_requires=required_packages,

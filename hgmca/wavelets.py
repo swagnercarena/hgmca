@@ -1,6 +1,6 @@
 import numpy as np
 import healpy as hp
-import subprocess, os, sys, warnings
+import subprocess, os, sys, math
 
 class AxisymWaveletTransformation(object):
 	""" Wavelet transformation class that interfaces with s2let's axisym wavelet
@@ -10,19 +10,22 @@ class AxisymWaveletTransformation(object):
 			wav_b (int): A wavelet parameter for axisym wavelets
 			min_scale (int): The minimum wavelet scale to be used
 			band_lim (int): The bandlimit for decomposition
-			s2let_path (str): The path to the compiled s2let directory.
+			s2let_path (str): The path to the compiled s2let directory bin.
 			samp (int): The sampling scheme to be used for the wavelet maps. 0
 			is minimal sampling, 1 is full resolution sampling, and 2 is 
 			oversampling (wavelet maps will have larger nside than the 
 			original map). 0 should almost always be used.
 	"""
-	def __init__(self, wav_b, min_scale, band_lim, s2let_path = '../s2let', 
+	def __init__(self, wav_b, min_scale, band_lim, s2let_path = None, 
 		samp=0):
 		# Save each of the parameters to the class.
 		self.wav_b = wav_b
 		self.min_scale = min_scale
 		self.band_lim = band_lim
-		self.s2let_bin = s2let_path + '/bin/'
+		if s2let_path is not None:
+			self.s2let_bin = s2let_path
+		else:
+			self.s2let_bin = os.path.dirname(os.path.abspath(__file__))+'/../s2letbin/'
 		self.samp = samp
 		# Initialize the nside list which will be filled as we write a map.
 		self._nside_list = []
@@ -574,7 +577,7 @@ class AxisymWaveletTransformation(object):
 			A_hier.append(A_temp)
 		return A_hier
 
-			def hgmca_get_mu_dict(self,X_scale,m_level):
+	def hgmca_get_mu_dict(self,X_scale,m_level):
 		""" Generates a dictionary that given a maximum level and a realization
 			of the data by scale will return a dictionary that, given a level,
 			returns the sources that should be considered at that scale.

@@ -1,7 +1,6 @@
 import numpy as np
 import healpy as hp
 from hgmca import wavelets
-import copy
 import unittest
 
 class TestAxisymWaveletTransformation(unittest.TestCase):
