@@ -210,3 +210,151 @@ class AxisymWaveletTransformation(object):
 		self._s2let_generate_recon_map(wav_map_prefix,hpx_map_file,nside,
 			stdout=FNULL)
 		FNULL.close()
+
+
+	def hgmca_is_initialized(self):
+		""" Checks whether the wavelet class is initialized to the data.
+
+			Return:
+				boolean: True if the class is initialized, false otherwise.
+		"""
+		if self.nside_list is not None and self.wav_lim_list is not None:
+			return True
+		else:
+			return False
+
+	def hgmca_divide_by_scale(self, X, ret_empty=False):
+		""" Given the wavelet coefficients X, returns X divided into the seperate
+			scales.
+
+			Parameters:
+				X (np.array): The wavelet coefficients in the form of a numpy matrix with
+					dimensions n_freq x n_wavelets
+				ret_empty (boolean): If set to true, the function will return a second list 
+					with identical dimensions to the first output and all array
+					entries initialized to 0.  
+
+			Return:
+				list: A list of the numpy arrays containing X at the different 
+					scales. If ret_empty is true it will return (X_scale,zero_scale)
+					where the second list is identical in its dimensions to X_scale but
+					all values are initialized to 0.
+				
+		"""
+		X_scale = list()
+		X_scale.append(X[:,:self.nside_list[0]**2*12])
+		start = self.nside_list[0]**2*12
+		for curr_j in range(1,len(self.nside_list)):
+			X_scale.append(X[:,start: start+self.nside_list[curr_j]**2*12])
+			start = start + self.nside_list[curr_j]**2*12
+
+		if ret_empty:
+			zero_scale = list()
+			for curr_j in range(len(X_scale)):
+				zero_scale.append(np.zeros(X_scale[curr_j].shape))
+			return X_scale, zero_scale
+		else:
+			return X_scale
+
+	def hgmca_reconstruct_by_scale(self, X_scale):
+		""" Given the list of wavelet coefficients divided by scale, returns the
+			full matrix of wavelet coefficients, reversing hgmca_divide_by_scale.
+
+			Parameters:
+				X_scale (list): the coefficients divided by scale
+
+			Return:
+				np.array: The full coefficients matrix with dimensions 
+					n_freqs x n_wavelets
+		"""
+		X = np.array(X_scale[0])
+		for curr_j in range(1,len(X_scale)):
+			X = np.append(X,X_scale[curr_j],axis=1)
+		return X
+
+	def hgmca_calc_wav_lim_list(self, nside, wav_map_prefix, cutoff = 0.05):
+		""" Sets the level limits for each scale corresponding to the
+			support of the wavelet being used. The limit is chosen such that
+			the smallest patch size incorporates the entirety of a wavelet
+			positioned in the middle of the patch
+
+			Parameters:
+				nside (int): the nside of the map the limits are generated for
+				wav_map_prefix (str): the prefix to use for the wavelet maps
+					cutoff: the percentage of the peak signal from which the signal
+					must decay to no longer be considered within the domain.
+		"""
+		filler_hpx_map = np.ones(12*(nside**2))
+		hpx_map_file = wav_map_prefix+'filler.fits'
+		hp.write_map(hpx_map_file, filler_hpx_map)
+		wav_coeff = self.get_wavelet_coeff(hpx_map_file,wav_map_prefix)
+		os.remove(hpx_map_file)
+		start = 0
+		wav_lim_list = list()
+		for curr_j in range(len(self.nside_list)):
+			# set non zero wavelet coefficient to be roughly at the center
+			# of the map.
+			start = start + 6*(self.nside_list[curr_j]**2)
+			# set all but one wavelet coefficient to 0
+			wav_coeff[:] = 0
+			wav_coeff[start] = 1e3
+			hpx_map_file = wav_map_prefix+'_wav_sup_scale_%d.fits'%(curr_j)
+			self.get_map_from_wavelet_coeff(hpx_map_file, nside, wav_map_prefix,
+				wav_coeff)
+			# calculate the domain from the nonzero values on each map
+			map_vals = hp.read_map(hpx_map_file,verbose=False)
+			# Find what portion of the map has signal > 5% the maximum (we will
+			# roughly consider this to be the domain of our wavelet).
+			ratio = len(map_vals)/len(np.where(np.abs(map_vals)>cutoff*np.max(
+				map_vals))[0])//12
+			ratio = max(ratio,1)
+			wav_lim_list.append(int(math.log(ratio,4)))
+			# deal with inconsistency that arise from reconstruction error for
+			# large bandlimits
+			if curr_j>0 and wav_lim_list[curr_j] < wav_lim_list[curr_j-1]:
+				wav_lim_list[curr_j] = wav_lim_list[curr_j-1]+1
+
+			# Clean up before the next scale
+			os.remove(hpx_map_file)
+			self.clean_prefix(wav_map_prefix)
+			start = start + 6*(self.nside_list[curr_j]**2)
+
+		self.wav_lim_list = wav_lim_list
+
+	def hgmca_get_max_level(self, X, scale):
+		"""Returns the maximum level of division permitted by the data. There are
+			two limiting factors here - the support of the wavelets in question
+			and the number of pixels in our map. The first can be intuited from
+			the shape of the data, and the second requires knowledge of the scale.
+
+			Parameters:
+				X (np.array): The wavelet coefficients in the form of a numpy matrix with
+					dimensions n_freqs x n_wavelets.
+				scale (int): the wavelet scale of the data X.
+
+			Return:
+				int: The maximum level of dyadic division permitted by the constraints
+					on the data.
+		"""
+		wav_lim = self.wav_lim_list[scale]
+		# The number of divisions that are allowed such that we have 256 pixels
+		# per patch (this may need to be played with). It is of course possible
+		# to have a map small enough that no level of division can achieve this,
+		# in which case we want to return 0.
+		nside_lim = max(int(np.log2(np.sqrt(len(X[0])//12))) - 3,0)
+		return min(nside_lim,wav_lim)
+
+	def hgmca_get_max_level_list(self, X_scale):
+		"""Returns a list of the maximum levels of division permitted by the data.
+
+			Parameters:
+				X_scale (list): The data divided up into wavelet scales.
+
+			Return:
+				list: A list of the maximum levels permitted by the data.
+		"""
+		max_level_list = np.zeros(len(X_scale))
+		for scale_i in range(len(X_scale)):
+			max_level_list[scale_i] = self.hgmca_get_max_level(X_scale[scale_i],
+				scale_i)
+		return max_level_list
