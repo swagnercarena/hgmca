@@ -153,3 +153,9 @@ If you want to test that everything went according to plan, run
 	$ cd $HGMCA
 	$ python setup.py install --user
 
+10. Move s2let into HGMCA directory
+
+.. code-block:: bash
+
+	$ mv $S2LET $HGMCA
+

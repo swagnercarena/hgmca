@@ -177,7 +177,7 @@ ifneq (,$(wildcard $(HEALPIXLIB)/libhealpix.a))
 	FFLAGS+= -I$(HEALPIXINC)
 	LDFLAGS+= -L$(HEALPIXLIB)
 	LDFLAGS+= -l$(HEALPIXLIBNM)
-	LDFLAGS+= -lsharp -lgfortran -fopenmp
+	LDFLAGS+= -lgfortran -fopenmp
 	ifneq ($(strip $(GFORTRANLIB)),)
 	  LDFLAGS+= -L$(GFORTRANLIB)
 	endif
