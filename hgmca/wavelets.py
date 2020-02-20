@@ -1,6 +1,6 @@
 import numpy as np
 import healpy as hp
-import subprocess, os, sys, math, warnings
+import subprocess, os, sys, math, warnings, numba
 
 class AxisymWaveletTransformation(object):
 	""" Wavelet transformation class that interfaces with s2let's axisym wavelet
@@ -687,3 +687,107 @@ class AxisymWaveletTransformation(object):
 							A_hier[lev][self.hgmca_get_A_hier_index(
 								lev,patch)]))**2
 		return loss
+
+
+spec = [('lev_data',numba.boolean[:])]
+@numba.jitclass(spec)
+class JitAxisymWaveletTransformation(object):
+	"""Wavelet transformation class that interfaces with s2let's axisym wavelet
+		transformation.
+
+		Paramters:
+			lev_data (np.array): Whether or not there is data corresponding to a specific
+				level (stored as a boolean array).
+	"""
+	def __init__(self,lev_data):
+		self.lev_data = lev_data
+
+	def hgmca_get_n_patches(self, lev):
+		""" Returns the number of patches that X will be divided into at level lev.
+
+			Parameters:
+				lev (int): the level of division
+
+			Return:
+				int: The number of patches
+		"""
+		if lev == 0:
+			return 1
+		return 12*(4**(lev-1))
+
+	def hgmca_data_for_patch(self, X_level, lev, patch):
+		""" Returns the subset of the data in X corresponding to the patch and 
+			level provided.
+
+			Parameters:
+				X_level (list): The data from which the patch will be extracted
+				lev (int): the level of subdivision
+				patch (int): the patch number 
+
+			Return:
+				np.array: The subset of the data corresponding to the patch of X
+		"""
+		# Deal with the fact that X_level has no entries for levels with no data
+		X_c = -1
+		for l in range(lev+1):
+			if self.lev_data[l] == True:
+				X_c += 1
+		return X_level[X_c][patch]
+
+	def hgmca_get_A_prior(self,lev,patch,A_hier,scale_lam_p,A_cmb):
+		""" Given the matrix hiearchy and the level and patch of a specific
+			mixing matrix will return the sum of mixing matrices connected in
+			the graphical model to that matrix. Will also return the number of
+			matrices that were summed for normalization.
+
+			Parameters:
+				lev (int): the level of the matrix for which the prior should be 
+					calculated
+				patch (int): the patch of the aformentioned matrix
+				A_hier (np.array): The hiearchy structure containing all the matrices
+				scale_lam_p (boolean): If true, then the prior will be calculated
+					assuming lam_p is scaled by Area patch / Area total.
+					This will be factored into A_p s.t. it absorbs the
+					lam_p normalization.
+				A_cmb (np.array): The prior for the cmb, always assumed to be in the first
+					column. This will overwrite whatever prior the hiearchy
+					gives for the column since we are assuming the cmb does not
+					have local variation.
+
+			Return:
+				np.array: The sum of the connected matrices
+		"""
+		# If A_hier is only one level deep, return None to indicate no prior
+		if len(A_hier) == 1:
+			return None
+		A_p = np.zeros(A_hier[0][0].shape)
+		if lev > 0:
+			# Assume lam_p for the first vertex and then lam_p times
+			# Area patch / Area of patch at level 1 for the rest of
+			# the lam_p
+			if scale_lam_p:
+				scaling = 12 / self.hgmca_get_n_patches(lev)
+			else:
+				scaling = 1
+			if lev == 1:
+				A_p += scaling*A_hier[lev-1][0]
+			else:
+				A_p += scaling*A_hier[lev-1][patch//4]
+		# Add the prior related to the next level
+		if lev == 0:
+			# No need to calculate scaling here. It's 1 by definition.
+			for child in range(12):
+				A_p += A_hier[lev+1][patch*4+child]
+		elif lev < len(A_hier)-1:
+			# See notes on scaling for lev>0 trigger. Divide 3
+			# instead of 12 since there are 4 times as many
+			# patches for the children
+			if scale_lam_p:
+				scaling = 3 / self.hgmca_get_n_patches(lev)
+			else:
+				scaling = 1
+			for child in range(4):
+				A_p += scaling*A_hier[lev+1][patch*4+child]
+		if np.sum(A_cmb)>0:
+			A_p[:,0]=A_cmb
+		return A_p
