@@ -14,7 +14,7 @@ class TestAxisymWaveletTransformation(unittest.TestCase):
 		recon_map_file = cmb_maps_path + 'gmca_test_full_sim_90_GHZ_recon.fits'	
 		wav_b = 3
 		min_scale = 1
-		band_lim = 512
+		band_lim = 128*3
 		nside = 128
 		# No subsampling here
 		samp = 1
@@ -28,9 +28,9 @@ class TestAxisymWaveletTransformation(unittest.TestCase):
 		recon_map = hp.read_map(recon_map_file,verbose=False)
 
 		self.assertLess(np.mean(np.abs(orig_map-recon_map))/
-			np.mean(np.abs(orig_map)),0.3)
+			np.mean(np.abs(orig_map)),0.1)
 		self.assertLess(np.max(np.abs(orig_map-recon_map))/
-			np.max(np.abs(orig_map)),0.3)
+			np.max(np.abs(orig_map)),0.1)
 
 	def test_recon_bandlim(self):
 		# Tests how the reconstruction improves with increasing bandlimit

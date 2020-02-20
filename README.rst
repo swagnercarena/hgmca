@@ -146,16 +146,16 @@ If you want to test that everything went according to plan, run
 	$ ./bin/s2let_test
 	$ ./bin/s2let_hpx_test
 
-9. Now, in the HGMCA directory, run the installation script:
+9. After all that hard work, we can copy the s2let bin into our hgmca folder.
+
+.. code-block:: bash
+
+	$ cp -r $S2LET/bin $HGMCA/s2letbin
+
+10. Now, in the HGMCA directory, run the installation script:
 
 .. code-block:: bash
 
 	$ cd $HGMCA
 	$ python setup.py install --user
-
-10. Move s2let into HGMCA directory
-
-.. code-block:: bash
-
-	$ mv $S2LET $HGMCA
 

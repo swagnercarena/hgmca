@@ -61,7 +61,8 @@ class AxisymWaveletTransformation(object):
 		"""
 		subprocess.call([self.s2let_bin + 's2let_transform_analysis_hpx_multi', 
 			orig_map_file, str(self.wav_b), str(self.min_scale), 
-			str(self.band_lim), wav_map_prefix, str(self.samp)])
+			str(self.band_lim), wav_map_prefix, str(self.samp)],
+			stdout=stdout)
 
 	def _s2let_generate_recon_map(self, wav_map_prefix, recon_map_file, nside, 
 		stdout=None):
