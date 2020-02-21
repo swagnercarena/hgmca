@@ -209,35 +209,43 @@ def gmca(X, n_sources, n_iterations, A_init=None, S_init=None,A_p = None,
 			A and S must be passed in as contiguous arrays. This can be done
 			with np.ascontiguousarray.
 	"""
+	# First deal with the case where no lam_p or A_p is passed in.
+	if A_p is None or lam_p is None:
+		A_p = np.zeros(A.shape)
+		lam_p = np.zeros(n_sources)
 
 	# Set up A and S.
 	if A_init is not None:
 		A = A_init
 	else:
-		# Initialize A using a quick and dirty version of PCA to improve speed.
+		# Initialize A to the prior matrix A_p.
+		A = A_p
+
+		# Find which sources have no prior.
+		non_priors = np.where(np.array(lam_p) == 0)[0]
+
+		# For sources with no prior, initialize with PCA 
 		X_sq = np.matmul(X,X.T)
 		_, eig_v = np.linalg.eig(X_sq)
-		A = eig_v[:,0:n_sources]
-		# Ensure that the memory is stored contiguously in memory.
+		A[:,non_priors] = eig_v[:,0:len(non_priors)]
+
+		# Ensure that A is stored contiguously in memory.
 		A = np.ascontiguousarray(np.real(A))
-		# Deal with the potential edge case of having an entirerly negative 
+
+		# Deal with the potential edge case of having an entirely negative 
 		# column left over from PCA.
 		if enforce_nn_A:
 			for i in range(len(A[0])):
-				if min(A[:,i]) < 0:
-					A[:,i] = 1
+				if max(A[:,i]) < 0:
+					A[:,i] = -A[:,i]
 		helpers.A_norm(A)
+
 	# We can now initialize S using our initial value for A unless an S value
 	# is provided.
 	if S_init is None:
 		S = np.matmul(np.linalg.pinv(A),X)
 	else:
 		S = S_init
-
-	# First deal with the case where no lam_p or A_p is passed in.
-	if A_p is None or lam_p is None:
-		A_p = np.zeros(A.shape)
-		lam_p = np.zeros(n_sources)
 
 	# Call gmca_numba
 	gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
