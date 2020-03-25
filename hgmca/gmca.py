@@ -110,16 +110,16 @@ def gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p,
 			X (np.array): A numpy array with dimensions number_of_maps (or 
 				frequencies) x number of data points (wavelet coefficients) per 
 				map.
-			n_sources (int): the number of sources to attempt to extract from the
-				data.
-			n_iterations (int): the number of iterations of coordinate descent to 
-				conduct.
+			n_sources (int): the number of sources to attempt to extract from 
+				the data.
+			n_iterations (int): the number of iterations of coordinate descent 
+				to conduct.
 			A (np.array): an initial value for the matrix A. Will be 
 				overwritten.
 			S (np.array): an initial value for the matrix S. Will be 
 				overwritten.
 			A_p (np.array): A matrix prior for the CGMCA calculation. 
-			lam_p ([float,...]): A n_sources long array of prior for each of 
+			lam_p (np.array): A n_sources long array of prior for each of 
 				the columns of A_p. This allows for a different lam_p to be 
 				applied to different columns of A_p.
 			enforce_nn_A (bool): a boolean that determines if the mixing matrix 
@@ -132,6 +132,7 @@ def gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p,
 			min_rmse_rate (int): How often the source matrix will be set to the 
 				minimum rmse solution. 0 will never return min_rmse within the 
 				gmca optimization.
+			seed (int): An integer to seed the random number generator.
 		
 		Notes:
 			A and S will be updated in place.
