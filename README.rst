@@ -27,7 +27,45 @@ transform, you will need to install ``s2let``. The instructions for installation
 
 	$ git clone https://github.com/swagnercarena/hgmca
 
-2. In the hgmca directory, download the ziped file 
+2.	Go into HGMCA directory and unzip the s2let bin the corresponds to your system.
+
+.. code-block:: bash
+
+	$ cd <HGMCA path>
+
+for mac:
+
+.. code-block:: bash
+
+	$ unzip s2let_mac.zip
+
+on NERSC:
+
+.. code-block:: bash
+
+	$ unzip s2let_nersc.zip
+
+Note these were compiled in March 2020. They may stop working as these systems are updated.
+
+3.	Test that the s2let binary works on your computer. If not, you will have to do the longform installation.
+
+.. code-block:: bash
+
+	$ s2letbin/s2let_hpx_test
+
+You will see several errors of the form  
+
+.. code-block:: bash
+
+	Ring weight file could not be found! Check healpix directories and files. 
+
+this does not mean that your installation failed. So long as the tests run to completion, things are working. If this did not work, then you will have to default to the longer installation instructions (following these instructions will also remove the ring weights error).
+
+4.	All that's left to do is to install hgmca:
+
+.. code-block:: bash
+
+	$ python setup.py install --user
 
 Installation (~15 minutes)
 --------------------------
