@@ -16,11 +16,23 @@ hgmca - A hierarchical component separation algorithm based on sparsity in the w
 
 ``HGMCA`` is a source separation package primarily aimed towards use on the Cosmic Microwave Background. The software package includes implementations of gmca and hgmca as described in `Wagner-Carena et al 2019 <https://arxiv.org/abs/1910.08077>`_. For ease of use, we have included a number of `demos <https://github.com/swagnercarena/hgmca/blob/s2let/demos>`_ with the code.
 
+Quick Installation (~2 Minutes)
+-------------------------------
+If you intend to use gmca or hgmca together with the scale discretized wavelet
+transform, you will need to install ``s2let``. The instructions for installation on the `s2let website <http://astro-informatics.github.io/s2let/scratch_install.html>`_ will not work for us, so we have detailed our own here. We have pre-compiled the s2let binary for a few processors to avoid the more lengthy (but also more robust) process in the full installation instructions.
+
+1. Clone the repo for hgmca:
+
+.. code-block:: bash
+
+	$ git clone https://github.com/swagnercarena/hgmca
+
+2. In the hgmca directory, download the ziped file 
+
 Installation (~15 minutes)
 --------------------------
 
-If you intend to use gmca or hgmca together with the scale discretized wavelet
-transform, you will need to install ``s2let``. The instructions for installation on the `s2let website <http://astro-informatics.github.io/s2let/scratch_install.html>`_ will not work for us, so we have detailed our own here. While the installation will take a few minutes, the instructions below should be comprehensive. Note that ``<some path>`` means that you must replace that input with the path on your computer.
+While this installation will take a few minutes, the instructions below should be comprehensive. Note that ``<some path>`` means that you must replace that input with the path on your computer.
 
 1. Install CFITSIO using brew (or equivalent). Use brew info to get the path. To install brew follow `these instructions <https://docs.brew.sh/Installation>`_.
 
