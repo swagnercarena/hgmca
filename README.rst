@@ -16,10 +16,10 @@ hgmca - A hierarchical component separation algorithm based on sparsity in the w
 
 ``HGMCA`` is a source separation package primarily aimed towards use on the Cosmic Microwave Background. The software package includes implementations of gmca and hgmca as described in `Wagner-Carena et al 2019 <https://arxiv.org/abs/1910.08077>`_. For ease of use, we have included a number of `demos <https://github.com/swagnercarena/hgmca/blob/s2let/demos>`_ with the code.
 
-Quick Installation (~2 Minutes)
+Quick Installation NERSC
 -------------------------------
 If you intend to use gmca or hgmca together with the scale discretized wavelet
-transform, you will need to install ``s2let``. The instructions for installation on the `s2let website <http://astro-informatics.github.io/s2let/scratch_install.html>`_ will not work for us, so we have detailed our own here. We have pre-compiled the s2let binary for a few processors to avoid the more lengthy (but also more robust) process in the full installation instructions.
+transform, you will need to install ``s2let``. The instructions for installation on the `s2let website <http://astro-informatics.github.io/s2let/scratch_install.html>`_ will not work for us, so we have detailed our own here. We have pre-compiled the s2let binary for NERSC. Using the code on other systems will require following the longer installation instructions.
 
 1. Clone the repo for hgmca:
 
@@ -158,7 +158,12 @@ to make sure everything is installed correctly.
 	$ cd $SSHT
 	$ make
 
-and once again go ahead and test that SSHT is working:
+On linux, you will have to change line 42 of the makefile to read 
+.. code-block:: bash
+
+	FFTWDIR      = $(FFTW)
+
+Once again go ahead and test that SSHT is working:
 
 .. code-block:: bash
 
@@ -171,7 +176,12 @@ and once again go ahead and test that SSHT is working:
 	$ cd $SO3
 	$ make
 
-and once again test your compilation:
+As before, on linux, you will have to change line 48 of the makefile to read 
+.. code-block:: bash
+
+	FFTWDIR      = $(FFTW)
+
+Once again test your compilation:
 
 .. code-block:: bash
 
@@ -185,6 +195,10 @@ and once again test your compilation:
 	$ cp $HGMCA/s2let_mods/makefile $S2LET/
 	$ cp $HGMCA/s2let_mods/*.c $S2LET/src/main/c/
 	$ cp $HGMCA/s2let_mods/*.h $S2LET/include/
+
+You will have to modify the make file on lines 29 and 33 to reflect the name of your c and fortran compilers. Then you can run.
+
+.. code-block:: bash
 	$ make lib
 	$ make mw_bin
 	$ make hpx_bin
