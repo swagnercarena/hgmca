@@ -12,6 +12,7 @@ Reference
    :maxdepth: 2
    
    hgmca_gmca
+   hgmca_wavelets
 
 Feedback
 --------
