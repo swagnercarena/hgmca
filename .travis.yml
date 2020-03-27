@@ -8,6 +8,7 @@ cache:
     pip: true
 
 before_install:
+  - sudo apt-get install gfortran
   - unzip s2letbin_nersc.zip
   - pip install coveralls
   - pip install python-coveralls

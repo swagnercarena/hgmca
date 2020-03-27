@@ -34,7 +34,15 @@ transform, you will need to install ``s2let``. The instructions for installation
 	$ cd <HGMCA path>
 	$ unzip s2letbin_nersc.zip -d ./
 
-Note these were compiled in March 2020. They may stop working as these systems are updated.
+Note these were compiled in March 2020. They may stop working as these systems are updated. Note that you will also have to add the CFITSIO and FFTW paths to your LD_LIBRARY_PATH. Add these two lines to your ~/.bashrc.ext file:
+
+.. code-block:: bash
+
+	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/common/software/cfitsio/3.47/lib:/usr/common/software/fftw3/3.3.8/gcc/8.2.0/skx/lib
+	module load gcc/8.2.0
+	export HEALPIXDATA=/global/homes/s/swagnerc/hgmca/Healpix_3.31/data
+
+this last line points to the ring weight files (so that HEALPIX doesn't yell at you).
 
 3.	Test that the s2let binary works on your computer. If not, you will have to do the longform installation.
 
