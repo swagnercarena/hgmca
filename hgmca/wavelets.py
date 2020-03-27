@@ -120,7 +120,7 @@ class AxisymWaveletTransformation(object):
 		wav_coeff = np.array([])
 		# Read the scale file
 		wav_temp = hp.read_map(wav_map_prefix+"_scal_%d_%d_%d"%(self.band_lim,
-			self.wav_b,self.min_scale)+".fits",verbose=False)
+			self.wav_b,self.min_scale)+".fits",verbose=False,dtype=np.float64)
 		# We will re-order the wavelet coefficients so that they are in nested
 		# ordering. Note that we need to reverse this change before writing the
 		# coefficients.
@@ -134,7 +134,7 @@ class AxisymWaveletTransformation(object):
 			self.wav_b, self.min_scale,curr_j)+".fits")):
 			wav_temp = hp.read_map(wav_map_prefix+"_wav_%d_%d_%d_%d"%(
 				self.band_lim,self.wav_b, self.min_scale,curr_j)+".fits",
-				verbose=False)
+				verbose=False,dtype=np.float64)
 			wav_temp = hp.reorder(wav_temp, r2n=True)
 			wav_coeff = np.append(wav_coeff,wav_temp)
 			self._nside_list.append(int(np.sqrt(len(wav_temp)/12)))
@@ -306,7 +306,7 @@ class AxisymWaveletTransformation(object):
 			self.get_map_from_wavelet_coeff(hpx_map_file, nside, wav_map_prefix,
 				wav_coeff)
 			# calculate the domain from the nonzero values on each map
-			map_vals = hp.read_map(hpx_map_file,verbose=False)
+			map_vals = hp.read_map(hpx_map_file,verbose=False,dtype=np.float64)
 			# Find what portion of the map has signal > 5% the maximum (we will
 			# roughly consider this to be the domain of our wavelet).
 			ratio = len(map_vals)/len(np.where(np.abs(map_vals)>cutoff*np.max(
