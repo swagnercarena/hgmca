@@ -66,7 +66,8 @@ class AxisymWaveletTransformation(object):
 		subprocess.call([os.path.join(self.s2let_bin,
 			's2let_transform_analysis_hpx_multi'), 
 			orig_map_file, str(self.wav_b), str(self.min_scale), 
-			str(self.band_lim), wav_map_prefix, str(self.samp)])
+			str(self.band_lim), wav_map_prefix, str(self.samp)],
+			stdout=stdout)
 
 	def _s2let_generate_recon_map(self, wav_map_prefix, recon_map_file, nside, 
 		stdout=None):
@@ -86,14 +87,16 @@ class AxisymWaveletTransformation(object):
 				The nside must be specified since the variable sampling
 				options for wavelet maps allow for multiple nsides.
 		"""
-		if len(recon_map_file) > 100:
-			raise ValueError('Length of recon_map_file is greater than 100' +
-				'characters. This will cause the s2let fortran code to crash.'+
+		print(recon_map_file)
+		if len(recon_map_file) > 1000:
+			raise ValueError('Length of recon_map_file is greater than 1000' +
+				' characters. This will cause the s2let fortran code to crash.'+
 				' Change naming conventions.')
 		subprocess.call([os.path.join(self.s2let_bin,
 			's2let_transform_synthesis_hpx_multi'), 
 			wav_map_prefix, str(self.wav_b), str(self.min_scale), 
-			str(self.band_lim), str(nside), recon_map_file, str(self.samp)])
+			str(self.band_lim), str(nside), recon_map_file, str(self.samp)],
+			stdout=stdout)
 
 	def _clean_prefix(self, wav_map_prefix):
 		""" Given the wavelet map prefix, delete all the wavelet coefficient
