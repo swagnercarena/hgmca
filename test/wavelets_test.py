@@ -1,17 +1,22 @@
 import numpy as np
 import healpy as hp
 from hgmca import wavelets
-import unittest
+import unittest, os
 
 class TestAxisymWaveletTransformation(unittest.TestCase):
+
+	def __init__(self, *args, **kwargs):
+		super(TestAxisymWaveletTransformation, self).__init__(*args, **kwargs)
+		# Open up the config file.
+		self.cmb_maps_path = os.path.join(
+			os.path.dirname(os.path.abspath(__file__)),'test_data/')
 
 	def test_reconstruction(self):
 		# The reconstruction still seems to have considerable error, so this simply
 		# checks that the error is small.
-		cmb_maps_path = 'test_data/'
-		hpx_map_file = cmb_maps_path + 'gmca_test_full_sim_90_GHZ.fits'
-		wav_map_prefix = cmb_maps_path + 'gmca_test_full_sim_90'
-		recon_map_file = cmb_maps_path + 'gmca_test_full_sim_90_GHZ_recon.fits'	
+		hpx_map_file = self.cmb_maps_path + 'gmca_test_full_sim_90_GHZ.fits'
+		wav_map_prefix = self.cmb_maps_path + 'gmca_90'
+		recon_map_file = self.cmb_maps_path + 'gmca_test_full_sim_90_GHZ_recon.fits'	
 		wav_b = 3
 		min_scale = 1
 		band_lim = 128*3
@@ -34,11 +39,10 @@ class TestAxisymWaveletTransformation(unittest.TestCase):
 
 	def test_recon_bandlim(self):
 		# Tests how the reconstruction improves with increasing bandlimit
-		cmb_maps_path = 'test_data/'
-		hpx_map_file = cmb_maps_path + 'gmca_test_full_sim_90_GHZ.fits'
-		wav_map_prefix = cmb_maps_path + 'gmca_test_full_sim_90'
-		small_b_lim_map = cmb_maps_path + 'gmca_test_full_sim_90_GHZ_128_recon.fits'
-		large_b_lim_map	= cmb_maps_path + 'gmca_test_full_sim_90_GHZ_420_recon.fits'
+		hpx_map_file = self.cmb_maps_path + 'gmca_test_full_sim_90_GHZ.fits'
+		wav_map_prefix = self.cmb_maps_path + 'gmca_90'
+		small_b_lim_map = self.cmb_maps_path + 'gmca_test_full_sim_90_GHZ_128_recon.fits'
+		large_b_lim_map	= self.cmb_maps_path + 'gmca_test_full_sim_90_GHZ_420_recon.fits'
 		wav_b = 3
 		min_scale = 1
 		nside = 128
@@ -69,12 +73,11 @@ class TestAxisymWaveletTransformation(unittest.TestCase):
 
 	def test_subsampling(self):
 		# Test that subsampling does not reduce the quality of the reconstruction
-		cmb_maps_path = 'test_data/'
-		hpx_map_file = cmb_maps_path + 'gmca_test_full_sim_90_GHZ.fits'
-		wav_map_prefix = cmb_maps_path + 'gmca_test_full_sim_90'
-		sub_samp_map = cmb_maps_path + 'gmca_test_full_sim_90_GHZ_sub_recon.fits'
-		full_samp_map = cmb_maps_path + 'gmca_test_full_sim_90_GHZ_full_recon.fits'
-		over_samp_map = cmb_maps_path + 'gmca_test_full_sim_90_GHZ_over_recon.fits'
+		hpx_map_file = self.cmb_maps_path + 'gmca_test_full_sim_90_GHZ.fits'
+		wav_map_prefix = self.cmb_maps_path + 'gmca_90'
+		sub_samp_map = self.cmb_maps_path + 'gmca_test_full_sim_90_GHZ_sub_recon.fits'
+		full_samp_map = self.cmb_maps_path + 'gmca_test_full_sim_90_GHZ_full_recon.fits'
+		over_samp_map = self.cmb_maps_path + 'gmca_test_full_sim_90_GHZ_over_recon.fits'
 		wav_b = 3
 		min_scale = 1
 		nside = 128

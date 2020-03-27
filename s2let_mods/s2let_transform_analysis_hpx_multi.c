@@ -111,8 +111,8 @@ int main(int argc, char *argv[])
 
 	// Output the wavelets to FITS files
 	printf("Writing wavelet maps to FITS files\n");
-	char outfile[100];
-	char params[100];
+	char outfile[1000];
+	char params[1000];
 	sprintf(params, "%d%s%d%s%d", L, "_", B, "_", J_min);
 	int j; // Explicitly compute the maximum wavelet scale
 	int offset = 0; // Start with the first wavelet

@@ -189,6 +189,7 @@ Once again test your compilation:
 You will have to modify the make file on lines 29 and 33 to reflect the name of your c and fortran compilers. Then you can run.
 
 .. code-block:: bash
+
 	$ make lib
 	$ make mw_bin
 	$ make hpx_bin

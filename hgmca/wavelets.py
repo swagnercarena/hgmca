@@ -59,10 +59,14 @@ class AxisymWaveletTransformation(object):
 				stdout (File): Where to write the standard output of the c 
 					calls. Can be used to suppress print statements.
 		"""
-		subprocess.call([self.s2let_bin + 's2let_transform_analysis_hpx_multi', 
+		if len(wav_map_prefix) > 82:
+			raise ValueError('Length of prefix is greater than 82 characters.' +
+				'This will cause the s2let fortran code to crash. Change' +
+				'naming conventions.')
+		subprocess.call([os.path.join(self.s2let_bin,
+			's2let_transform_analysis_hpx_multi'), 
 			orig_map_file, str(self.wav_b), str(self.min_scale), 
-			str(self.band_lim), wav_map_prefix, str(self.samp)],
-			stdout=stdout)
+			str(self.band_lim), wav_map_prefix, str(self.samp)])
 
 	def _s2let_generate_recon_map(self, wav_map_prefix, recon_map_file, nside, 
 		stdout=None):
@@ -82,10 +86,14 @@ class AxisymWaveletTransformation(object):
 				The nside must be specified since the variable sampling
 				options for wavelet maps allow for multiple nsides.
 		"""
-		subprocess.call([self.s2let_bin + 's2let_transform_synthesis_hpx_multi', 
+		if len(recon_map_file) > 100:
+			raise ValueError('Length of recon_map_file is greater than 100' +
+				'characters. This will cause the s2let fortran code to crash.'+
+				' Change naming conventions.')
+		subprocess.call([os.path.join(self.s2let_bin,
+			's2let_transform_synthesis_hpx_multi'), 
 			wav_map_prefix, str(self.wav_b), str(self.min_scale), 
-			str(self.band_lim), str(nside), recon_map_file, str(self.samp)],
-			stdout=stdout)
+			str(self.band_lim), str(nside), recon_map_file, str(self.samp)])
 
 	def _clean_prefix(self, wav_map_prefix):
 		""" Given the wavelet map prefix, delete all the wavelet coefficient
@@ -156,14 +164,14 @@ class AxisymWaveletTransformation(object):
 		# ring ordering.
 		wav_temp = hp.reorder(wav_coeff[:self._nside_list[0]**2*12],n2r=True)
 		hp.write_map(wav_map_prefix+"_scal_%d_%d_%d"%(self.band_lim,self.wav_b, 
-				self.min_scale)+".fits",wav_temp,overwrite=True)
+				self.min_scale)+".fits",wav_temp,overwrite=True,dtype=np.float64)
 		start = self._nside_list[0]**2*12
 		for curr_j in range(1,len(self._nside_list)):
 			wav_temp = hp.reorder(wav_coeff[
 				start:start+self._nside_list[curr_j]**2*12], n2r=True)
 			hp.write_map(wav_map_prefix+"_wav_%d_%d_%d_%d"%(self.band_lim,
 				self.wav_b, self.min_scale,self.min_scale+curr_j-1)+".fits", 
-				wav_temp,overwrite=True)
+				wav_temp,overwrite=True,dtype=np.float64)
 			start = start + self._nside_list[curr_j]**2*12
 
 	def get_wavelet_coeff(self, hpx_map_file, wav_map_prefix):
@@ -290,7 +298,7 @@ class AxisymWaveletTransformation(object):
 		"""
 		filler_hpx_map = np.ones(12*(nside**2))
 		hpx_map_file = wav_map_prefix+'filler.fits'
-		hp.write_map(hpx_map_file, filler_hpx_map)
+		hp.write_map(hpx_map_file, filler_hpx_map,dtype=np.float64)
 		wav_coeff = self.get_wavelet_coeff(hpx_map_file,wav_map_prefix)
 		os.remove(hpx_map_file)
 		start = 0

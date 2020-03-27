@@ -98,8 +98,8 @@ int main(int argc, char *argv[])
 	printf("- Total number of wavelets : %i\n", J);
 	printf("- First wavelet scale to be used : %i\n", J_min);
 
-	char params[100];
-	char file[100];
+	char params[1000];
+	char file[1000];
 	sprintf(params, "%d%s%d%s%d", L, "_", B, "_", J_min);
 	int j, offset = 0;
 	printf("File root = %s\n",fileroot);
