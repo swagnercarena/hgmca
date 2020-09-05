@@ -2,6 +2,94 @@ import numpy as np
 import healpy as hp
 import subprocess, os, sys, math, numba
 
+
+@numba.njit
+def k_sdw(k,scale_int):
+	""" The modified Schwartz function used to generate the wavelet
+		kernerls.
+
+		Parameters:
+			k (int): The input at which the function will be evaluated
+			scale_int (int): The scaling function to use to reparameterize
+				the inputs for evaluation.
+	"""
+	reparam_k = (k-(1.0/scale_int))*(2.0*scale_int/(scale_int-1)) - 1
+	if reparam_k<=-1 or reparam_k>=1:
+		return 0
+	else:
+		return np.exp(-2.0/(1.0-reparam_k**2.0))/k
+
+
+@numba.njit
+def kappa_integral(lower,upper,n_quads,scale_int):
+	""" Carry out the ratio of Schwartz Function integrals required
+		for the kappa.
+
+		Parameters:
+			lower (float): The lower bound of integration
+			upper (float): The upper bound of integration
+			n_quads (int): Using the trapezoid rule, the number of
+				bins to consider for integration
+			scale_int (int): The integer used as the basis for scaling
+				the wavelet functions
+	"""
+	# Unit of integration
+	dx = (upper-lower)/n_quads
+	if upper==lower:
+		return 0
+	int_sum = 0
+	for i in range(n_quads):
+		f1 = k_sdw(lower+i*dx,scale_int)
+		f2 = k_sdw(lower+(i+1)*dx,scale_int)
+		int_sum += (f1+f2)*dx/2
+	return int_sum
+
+
+@numba.njit
+def calc_j_max(band_lim,scale_int):
+	"""	Return the maximum level of analysis appropriate for a
+		specific wavelet scaling integer and band limit.
+
+		Parameters:
+			band_lim (int): The band limit for the function / map being
+				analyzed by the wavelets
+			scale_int (int): The integer used as the basis for scaling
+				the wavelet functions
+	"""
+	return int(np.ceil(np.log(band_lim)/np.log(scale_int)))
+
+
+@numba.njit
+def phi2_s2dw(phi2,band_lim,scale_int,n_quads):
+	"""	Calculate the smoothly decreasing function that will form the
+		basis of the wavelet kernel function (and the scaling function).
+
+		Parameters:
+			phi2 (np.array): A pre-initialized array that will be modified
+				in place to reflect the values of the smoothly decreasing
+				function for the wavelet kernel.
+			band_lim (int): The band limit for the function / map being
+				analyzed by the wavelets
+			scale_int (int): The integer used as the basis for scaling
+				the wavelet functions
+			n_quads (int): Using the trapezoid rule, the number of
+				bins to consider for integration
+	"""
+	# Calculate the normalizing coefficient for our wavelets
+	norm = kappa_integral(1.0/scale_int,1.0,n_quads,scale_int)
+	# Calculate the maximum value of J given the scaling integer and the
+	# band limit of the data.
+	j_max = calc_j_max(band_lim,scale_int)
+	for j in range(j_max+2):
+		for ell in range(band_lim):
+			if ell < scale_int**(j-1):
+				phi2[ell+j*band_lim] = 1
+			elif ell > scale_int**(j):
+				phi2[ell+j*band_lim] = 0
+			else:
+				phi2[ell+j*band_lim] = kappa_integral(ell/scale_int**j,1.0,
+					n_quads,scale_int)/norm
+
 class AxisymWaveletTransformation(object):
 	""" Wavelet transformation class that interfaces with s2let's axisym wavelet
 		transformation.
@@ -12,11 +100,11 @@ class AxisymWaveletTransformation(object):
 			band_lim (int): The bandlimit for decomposition
 			s2let_path (str): The path to the compiled s2let directory bin.
 			samp (int): The sampling scheme to be used for the wavelet maps. 0
-			is minimal sampling, 1 is full resolution sampling, and 2 is 
-			oversampling (wavelet maps will have larger nside than the 
+			is minimal sampling, 1 is full resolution sampling, and 2 is
+			oversampling (wavelet maps will have larger nside than the
 			original map). 0 should almost always be used.
 	"""
-	def __init__(self, wav_b, min_scale, band_lim, s2let_path = None, 
+	def __init__(self, wav_b, min_scale, band_lim, s2let_path = None,
 		samp=0):
 		# Save each of the parameters to the class.
 		self.wav_b = wav_b
@@ -56,7 +144,7 @@ class AxisymWaveletTransformation(object):
 					transformed.
 				wav_map_prefix (str): The prefix (including directory) to save
 					the output wavelet fits files to.
-				stdout (File): Where to write the standard output of the c 
+				stdout (File): Where to write the standard output of the c
 					calls. Can be used to suppress print statements.
 		"""
 		if len(wav_map_prefix) > 82:
@@ -64,12 +152,12 @@ class AxisymWaveletTransformation(object):
 				'This will cause the s2let fortran code to crash. Change' +
 				'naming conventions.')
 		subprocess.call([os.path.join(self.s2let_bin,
-			's2let_transform_analysis_hpx_multi'), 
-			orig_map_file, str(self.wav_b), str(self.min_scale), 
+			's2let_transform_analysis_hpx_multi'),
+			orig_map_file, str(self.wav_b), str(self.min_scale),
 			str(self.band_lim), wav_map_prefix, str(self.samp)],
 			stdout=stdout)
 
-	def _s2let_generate_recon_map(self, wav_map_prefix, recon_map_file, nside, 
+	def _s2let_generate_recon_map(self, wav_map_prefix, recon_map_file, nside,
 		stdout=None):
 		""" Given the path to the wavelet coefficient maps, reconstruct the
 			original healpix map.
@@ -77,10 +165,10 @@ class AxisymWaveletTransformation(object):
 			Parameters:
 				wav_map_prefix (str): The prefix (including directory) to load
 					the input wavelet fits files from.
-				recon_map_file (str): The path to save the reconstructed 
+				recon_map_file (str): The path to save the reconstructed
 					healpix map to.
 				nside (int): The nside for the healpix map to be written.
-				stdout (File): Where to write the standard output of the c 
+				stdout (File): Where to write the standard output of the c
 					calls. Can be used to suppress print statements.
 
 			Notes:
@@ -93,8 +181,8 @@ class AxisymWaveletTransformation(object):
 				' characters. This will cause the s2let fortran code to crash.'+
 				' Change naming conventions.')
 		subprocess.call([os.path.join(self.s2let_bin,
-			's2let_transform_synthesis_hpx_multi'), 
-			wav_map_prefix, str(self.wav_b), str(self.min_scale), 
+			's2let_transform_synthesis_hpx_multi'),
+			wav_map_prefix, str(self.wav_b), str(self.min_scale),
 			str(self.band_lim), str(nside), recon_map_file, str(self.samp)],
 			stdout=stdout)
 
@@ -103,7 +191,7 @@ class AxisymWaveletTransformation(object):
 			maps.
 
 			Parameters:
-				wav_map_prefix (str): The prefix (including directory) where 
+				wav_map_prefix (str): The prefix (including directory) where
 					the wavelet fits will be / are saved.
 		"""
 		# Go through the coefficients by name, and remove them.
@@ -120,7 +208,7 @@ class AxisymWaveletTransformation(object):
 			store them as a numpy file.
 
 			Parameters:
-				wav_map_prefix (str): The prefix (including directory) where 
+				wav_map_prefix (str): The prefix (including directory) where
 					the wavelet fits will are saved.
 			Return:
 				np.array: A 2D array with dimensions n_freqs x n_wavs.
@@ -158,22 +246,22 @@ class AxisymWaveletTransformation(object):
 		""" Given the wavelet coefficients, write out the wavelet maps.
 
 			Parameters:
-				wav_map_prefix (str): The prefix (including directory) where 
+				wav_map_prefix (str): The prefix (including directory) where
 					the wavelet fits will are saved.
 				wav_coeff (np.array): A 1D array with the wavelet coefficients
 					to be written into fits files.
 		"""
-		# Isolate the coefficients in each map, and reorder them back to 
+		# Isolate the coefficients in each map, and reorder them back to
 		# ring ordering.
 		wav_temp = hp.reorder(wav_coeff[:self._nside_list[0]**2*12],n2r=True)
-		hp.write_map(wav_map_prefix+"_scal_%d_%d_%d"%(self.band_lim,self.wav_b, 
+		hp.write_map(wav_map_prefix+"_scal_%d_%d_%d"%(self.band_lim,self.wav_b,
 				self.min_scale)+".fits",wav_temp,overwrite=True,dtype=np.float64)
 		start = self._nside_list[0]**2*12
 		for curr_j in range(1,len(self._nside_list)):
 			wav_temp = hp.reorder(wav_coeff[
 				start:start+self._nside_list[curr_j]**2*12], n2r=True)
 			hp.write_map(wav_map_prefix+"_wav_%d_%d_%d_%d"%(self.band_lim,
-				self.wav_b, self.min_scale,self.min_scale+curr_j-1)+".fits", 
+				self.wav_b, self.min_scale,self.min_scale+curr_j-1)+".fits",
 				wav_temp,overwrite=True,dtype=np.float64)
 			start = start + self._nside_list[curr_j]**2*12
 
@@ -187,7 +275,7 @@ class AxisymWaveletTransformation(object):
 					the output wavelet fits files to.
 
 			Return:
-				np.array: A numpy array with the wavelet coefficients with 
+				np.array: A numpy array with the wavelet coefficients with
 				dimensions n_wavs
 		"""
 		# Supress the output of our commamndline calls for readability.
@@ -200,7 +288,7 @@ class AxisymWaveletTransformation(object):
 		FNULL.close()
 		return wav_coeff
 
-	def get_map_from_wavelet_coeff(self, hpx_map_file, nside, wav_map_prefix, 
+	def get_map_from_wavelet_coeff(self, hpx_map_file, nside, wav_map_prefix,
 			wav_coeff):
 		"""	Given the wavelet coefficients, reconstruct and write out the
 			healpix map file.
@@ -212,7 +300,7 @@ class AxisymWaveletTransformation(object):
 				nside (int): The nside for the healpix map to be written.
 				wav_map_prefix (str): The prefix (including directory) to save
 					the output wavelet fits files to.
-				wav_coeff (np.array): A numpy array with the wavelet 
+				wav_coeff (np.array): A numpy array with the wavelet
 					coefficients with dimensions n_freq x n_wavs.
 
 			Notes:
@@ -245,16 +333,16 @@ class AxisymWaveletTransformation(object):
 			Parameters:
 				X (np.array): The wavelet coefficients in the form of a numpy matrix with
 					dimensions n_freq x n_wavelets
-				ret_empty (boolean): If set to true, the function will return a second list 
+				ret_empty (boolean): If set to true, the function will return a second list
 					with identical dimensions to the first output and all array
-					entries initialized to 0.  
+					entries initialized to 0.
 
 			Return:
-				list: A list of the numpy arrays containing X at the different 
+				list: A list of the numpy arrays containing X at the different
 					scales. If ret_empty is true it will return (X_scale,zero_scale)
 					where the second list is identical in its dimensions to X_scale but
 					all values are initialized to 0.
-				
+
 		"""
 		X_scale = list()
 		X_scale.append(X[:,:self.nside_list[0]**2*12])
@@ -279,7 +367,7 @@ class AxisymWaveletTransformation(object):
 				X_scale (list): the coefficients divided by scale
 
 			Return:
-				np.array: The full coefficients matrix with dimensions 
+				np.array: The full coefficients matrix with dimensions
 					n_freqs x n_wavelets
 		"""
 		X = np.array(X_scale[0])
@@ -420,13 +508,13 @@ class AxisymWaveletTransformation(object):
 			return math.log(n_patches//12,4)+1
 
 	def hgmca_data_for_patch(self, X, lev, patch, scale=False):
-		""" Returns the subset of the data in X corresponding to the patch and 
+		""" Returns the subset of the data in X corresponding to the patch and
 			level provided.
 
 			Parameters:
 				X (np.array): The data from which the patch will be extracted
 				lev (int): the level of subdivision
-				patch (int): the patch number 
+				patch (int): the patch number
 				scale (boolean): a boolean to indicate if X is multiple scales
 
 			Return:
@@ -450,7 +538,7 @@ class AxisymWaveletTransformation(object):
 
 	def hgmca_divide_by_level(self, X, mu_dict, X_scale=None):
 		"""	Divide the data by level and arrange the patches such that they
-			neighbor each other in memory. Note also that rather than 
+			neighbor each other in memory. Note also that rather than
 			n_sig X n_pixels the matrices in X_level will be n_pixels X n_sig
 			to further benefit from adjacent memory optimization.
 
@@ -462,7 +550,7 @@ class AxisymWaveletTransformation(object):
 					passed in to speed up computation.
 
 			Return:
-				list: A list of matrices by level where each matrix includes 
+				list: A list of matrices by level where each matrix includes
 					the data from all of the scales that will be analyzed at that
 					level. Note that the dimensions are (n_patches,n_freq,n_wav)
 				np.array: A boolean numpy array defining whether or not there is data
@@ -472,7 +560,7 @@ class AxisymWaveletTransformation(object):
 		X_level = list()
 		# Keeps track of whether or not there is data for that level
 		lev_data = []
-		# We need the data divided by scale if that has not been done ahead of 
+		# We need the data divided by scale if that has not been done ahead of
 		# time.
 		if X_scale is None:
 			X_scale = self.hgmca_divide_by_scale(X)
@@ -506,7 +594,7 @@ class AxisymWaveletTransformation(object):
 		return X_level, np.array(lev_data,dtype=np.bool_)
 
 	def hgmca_set_patch_coeff(self, X, X_p, lev, patch, scale=False):
-		""" Set the data corresponding to the level and patch specified in S to 
+		""" Set the data corresponding to the level and patch specified in S to
 			S_p
 
 			Parameters:
@@ -627,7 +715,7 @@ class JitAxisymWaveletTransformation(object):
 		self.lev_data = lev_data
 
 	def hgmca_get_n_patches(self, lev):
-		""" Returns the number of patches that X will be divided into at level 
+		""" Returns the number of patches that X will be divided into at level
 			lev.
 
 			Parameters:
@@ -641,16 +729,16 @@ class JitAxisymWaveletTransformation(object):
 		return 12*(4**(lev-1))
 
 	def hgmca_data_for_patch(self, X_level, lev, patch):
-		""" Returns the subset of the data in X corresponding to the patch and 
+		""" Returns the subset of the data in X corresponding to the patch and
 			level provided.
 
 			Parameters:
 				X_level (list): The data from which the patch will be extracted
 				lev (int): the level of subdivision
-				patch (int): the patch number 
+				patch (int): the patch number
 
 			Return:
-				np.array: The subset of the data corresponding to the patch of 
+				np.array: The subset of the data corresponding to the patch of
 				X.
 		"""
 		# Deal with the fact that X_level has no entries for levels with no data
@@ -666,11 +754,11 @@ class JitAxisymWaveletTransformation(object):
 			the graphical model to that matrix.
 
 			Parameters:
-				lev (int): the level of the matrix for which the prior should 
+				lev (int): the level of the matrix for which the prior should
 					be calculated
 				patch (int): the patch of the aformentioned matrix
-				A_hier ([np.array,...]): A list of numpy matrices (one per 
-					level). The arrays should have dimensions number of patches x 
+				A_hier ([np.array,...]): A list of numpy matrices (one per
+					level). The arrays should have dimensions number of patches x
 					number of maps x number of sources.
 
 			Return:
