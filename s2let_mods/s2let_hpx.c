@@ -63,12 +63,19 @@ void s2let_set_hpx_sampling_scheme(int samp)
 	global_samp = samp;
 }
 
-int s2let_scaling_nside(int j, int nside)
+int s2let_scaling_nside(int j, int B, int nside)
 {
 	if (global_samp == 0)
 	{
-		return (int) MIN(MAX(pow(2,j)*8,1),nside);
-	} 
+		printf("B %i\n",B);
+		printf("j %i\n",j);
+		double n_nside = pow(2,ceil(log(MIN(pow(B,j)/2.0,nside*1.0))/log(2.0)));
+		n_nside = pow(2,ceil(log(MIN(pow(B,j)/2,nside*1.0))/log(2.0)));
+		n_nside = MAX(n_nside,32);
+		printf("- Picking nside = %f\n",n_nside);
+		printf("- Picking nside = %i\n",(int)n_nside);
+		return (int) n_nside;
+	}
 	else if (global_samp == 1)
 	{
 		return nside;
@@ -86,11 +93,12 @@ void s2let_transform_axisym_allocate_hpx_f_wav_hpx_real(double **f_wav, double *
 	int J_min = parameters->J_min;
 
 	int J = s2let_j_max(parameters);
+	int B = (int) parameters->B;
 	int j,total = 0;
 	for (j=J_min;j<=J;j++)
 	{
-		total += 12*pow(s2let_scaling_nside(j,nside),2);
+		total += 12*pow(s2let_scaling_nside(j+1,B,nside),2);
 	}
 	*f_wav = (double*) calloc(total,sizeof(double));
-	*f_scal = (double*) calloc(12*pow(s2let_scaling_nside(J_min-1,nside),2),sizeof(double));
+	*f_scal = (double*) calloc(12*pow(s2let_scaling_nside(J_min,B,nside),2),sizeof(double));
 }

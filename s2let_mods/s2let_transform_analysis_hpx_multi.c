@@ -13,6 +13,7 @@ void s2let_transform_axisym_wav_analysis_hpx_multi(double *f_wav, double *f_scal
 
 	int bandlimit, j, offset, offset_lm;
 	int J = s2let_j_max(parameters);
+	int B = (int) parameters->B;
 
 	double *wav_lm, *scal_lm;
 	s2let_transform_axisym_lm_allocate_wav(&wav_lm, &scal_lm, parameters);
@@ -27,13 +28,13 @@ void s2let_transform_axisym_wav_analysis_hpx_multi(double *f_wav, double *f_scal
 	s2let_transform_axisym_lm_wav_analysis_multires(f_wav_lm, f_scal_lm, flm, wav_lm, scal_lm, parameters);
 
 	bandlimit = MIN(s2let_bandlimit(J_min-1, parameters), L);
-	s2let_hpx_alm2map_real(f_scal, f_scal_lm, s2let_scaling_nside(J_min-1,nside), bandlimit);
+	s2let_hpx_alm2map_real(f_scal, f_scal_lm, s2let_scaling_nside(J_min,B,nside), bandlimit);
 
 	offset = 0;
 	offset_lm = 0;
 	for(j = J_min; j <= J; j++){
 		bandlimit = MIN(s2let_bandlimit(j, parameters), L);
-		int j_nside = s2let_scaling_nside(j,nside);
+		int j_nside = s2let_scaling_nside(j+1,B,nside);
 		s2let_hpx_alm2map_real(f_wav + offset, f_wav_lm + offset_lm, j_nside, bandlimit);
 		offset_lm += bandlimit * bandlimit;
 		offset += 12 * j_nside * j_nside;
@@ -52,7 +53,7 @@ void s2let_transform_axisym_wav_analysis_hpx_multi(double *f_wav, double *f_scal
  * - B : wavelet parameter
  * - J_min : first wavelet scale to use
  * - L : bandlimit for the decomposition
- * - out_file : prefix for output wavelet coefficient fits files 
+ * - out_file : prefix for output wavelet coefficient fits files
  * - samp : an optional sixth parameter that decides the sampling scheme that
  *		will be used for the wavelet maps. 0 is minimal sampling, 1 is full
  *		resolution sampling, and 2 is oversampling (wavelet maps will have larger
@@ -103,9 +104,9 @@ int main(int argc, char *argv[])
 
 	printf("Performing wavelet decomposition...");fflush(NULL);
 	double *f_wav, *f_scal;
-	s2let_transform_axisym_allocate_hpx_f_wav_hpx_real(&f_wav, &f_scal, nside, 
+	s2let_transform_axisym_allocate_hpx_f_wav_hpx_real(&f_wav, &f_scal, nside,
 		&parameters);
-	s2let_transform_axisym_wav_analysis_hpx_multi(f_wav, f_scal, f, nside, 
+	s2let_transform_axisym_wav_analysis_hpx_multi(f_wav, f_scal, f, nside,
 		&parameters);
 	printf("done\n");
 
@@ -120,7 +121,7 @@ int main(int argc, char *argv[])
 	for(j = J_min; j <= J; j++){
 		sprintf(outfile, "%s%s%s%s%d%s", out_file_prefix, "_wav_", params, "_", j, ".fits");
 		printf("- Outfile_wav[j=%i] = %s\n",j,outfile);
-		int j_nside = s2let_scaling_nside(j,nside);
+		int j_nside = s2let_scaling_nside(j+1,B,nside);
 		remove(outfile); // In case the file exists
 		s2let_hpx_write_map(outfile, f_wav + offset, j_nside); // Now write the map to fits file
 		offset += 12*j_nside*j_nside; // Go to the next wavelet
@@ -129,7 +130,7 @@ int main(int argc, char *argv[])
 	sprintf(outfile, "%s%s%s%s", out_file_prefix, "_scal_", params, ".fits");
 	printf("- Outfile_scal = %s\n",outfile);
 	remove(outfile); // In case the file exists
-	s2let_hpx_write_map(outfile, f_scal, s2let_scaling_nside(J_min-1,nside)); // Now write the map to fits file
+	s2let_hpx_write_map(outfile, f_scal, s2let_scaling_nside(J_min,B,nside)); // Now write the map to fits file
 
 	printf("--------------------------------------------------\n");
 

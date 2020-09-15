@@ -13,6 +13,7 @@ void s2let_transform_axisym_wav_synthesis_hpx_multi(double *f, const double *f_w
 
 	int bandlimit, j, offset, offset_lm;
 	int J = s2let_j_max(parameters);
+	int B = (int) parameters->B;
 
 	double *wav_lm, *scal_lm;
 	s2let_transform_axisym_lm_allocate_wav(&wav_lm, &scal_lm, parameters);
@@ -23,12 +24,12 @@ void s2let_transform_axisym_wav_synthesis_hpx_multi(double *f, const double *f_w
 	s2let_transform_axisym_lm_allocate_f_wav_multires(&f_wav_lm, &f_scal_lm, parameters);
 
 	bandlimit = MIN(s2let_bandlimit(J_min-1, parameters), L);
-	s2let_hpx_map2alm_real(f_scal_lm, f_scal, s2let_scaling_nside(J_min-1,nside), bandlimit);
+	s2let_hpx_map2alm_real(f_scal_lm, f_scal, s2let_scaling_nside(J_min,B,nside), bandlimit);
 	offset = 0;
 	offset_lm = 0;
 	for(j = J_min; j <= J; j++){
 		bandlimit = MIN(s2let_bandlimit(j, parameters), L);
-		int j_nside = s2let_scaling_nside(j,nside);
+		int j_nside = s2let_scaling_nside(j+1,B,nside);
 		s2let_hpx_map2alm_real(f_wav_lm + offset_lm, f_wav + offset, j_nside, bandlimit);
 		offset_lm += bandlimit * bandlimit;
 		offset += 12 * j_nside * j_nside;
@@ -111,12 +112,12 @@ int main(int argc, char *argv[])
 	double *f_wav, *f_scal;
 	s2let_transform_axisym_allocate_hpx_f_wav_hpx_real(&f_wav, &f_scal, nside, &parameters);
 	// Read the scaling function
-	s2let_hpx_read_map(f_scal, file, s2let_scaling_nside(J_min-1,nside)); // Now write the map to fits file
+	s2let_hpx_read_map(f_scal, file, s2let_scaling_nside(J_min,B,nside)); // Now write the map to fits file
 	// Read the wavelets
 	for(j = J_min; j <= J; j++){
 		sprintf(file, "%s%s%s%s%d%s", fileroot, "_wav_", params, "_", j, ".fits");
 		printf("- Infile_wav[j=%i] = %s\n",j,file);
-		int j_nside = s2let_scaling_nside(j,nside);
+		int j_nside = s2let_scaling_nside(j+1,B,nside);
 		s2let_hpx_read_map(f_wav + offset, file, j_nside); // Now write the map to fits file
 		offset += 12*j_nside*j_nside; // Go to the next wavelet
 	}

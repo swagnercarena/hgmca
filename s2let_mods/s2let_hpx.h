@@ -104,7 +104,7 @@ void s2let_set_hpx_sampling_scheme(int samp);
  * \param[in]  nside Healpix resolution.
  * \retval int nside for this wavelet scale
  */
-int s2let_scaling_nside(int j, int nside);
+int s2let_scaling_nside(int j, int B, int nside);
 
 void s2let_transform_axisym_allocate_hpx_f_wav_hpx_real(double **f_wav, double **f_scal, int nside, const s2let_parameters_t *parameters);
 

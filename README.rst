@@ -16,6 +16,15 @@ hgmca - A hierarchical component separation algorithm based on sparsity in the w
 
 ``HGMCA`` is a source separation package primarily aimed towards use on the Cosmic Microwave Background. The software package includes implementations of gmca and hgmca as described in `Wagner-Carena et al 2019 <https://arxiv.org/abs/1910.08077>`_. For ease of use, we have included a number of `demos <https://github.com/swagnercarena/hgmca/blob/s2let/demos>`_ with the code.
 
+Installation
+------------
+
+TODO
+
+1) Install repo
+
+2) Download HEALPIX weights from https://github.com/healpy/healpy-data/releases
+
 Quick Installation NERSC
 -------------------------------
 If you intend to use gmca or hgmca together with the scale discretized wavelet
@@ -49,7 +58,7 @@ this last line points to the ring weight files (so that HEALPIX doesn't yell at 
 .. code-block:: bash
 
 	$ s2letbin/s2let_hpx_test
- 
+
 So long as the tests run to completion, things are working. If this did not work, then you will have to default to the longer installation instructions.
 
 4.	All that's left to do is to install hgmca. Make sure you are using python version 3:
@@ -89,23 +98,23 @@ While this installation will take a few minutes, the instructions below should b
 	$ Should I attempt to create these directories (Y|n)? Y
 	$ enter C compiler you want to use (gcc): <compiler>
 	$ enter options for C compiler (-O2 -Wall):
-	$ enter archive creation (and indexing) command (ar -rsv):  
+	$ enter archive creation (and indexing) command (ar -rsv):
 	$ do you want the HEALPix/C library to include CFITSIO-related functions ? (Y|n): Y
-	$ enter full name of cfitsio library (libcfitsio.a): 
+	$ enter full name of cfitsio library (libcfitsio.a):
 	$ enter location of cfitsio library (/usr/local/lib): <CFITSIO path>/lib
 	$ enter location of cfitsio header fitsio.h [<CFITSIO path>]:
 	$ A static library is produced by default. Do you also want a shared library ? (y|N)
 	$ Do you want this modification to be done (y|n)? [n]: y
 	$ Enter your choice (configuration of packages can be done in any order): 3
 	$ enter name of your F90 compiler (): <gfortran compiler>
-	$ enter suffix for directories (): 
+	$ enter suffix for directories ():
 	$ Should I attempt to create these directories (Y|n)? Y
 	$ enter compilation flags for gfortran-9 compiler (-I$(F90_INCDIR) -DGFORTRAN -fno-second-underscore):
 	$ enter optimisation flags for gfortran-9 compiler (-O3):
 	$ enter name of your C compiler (gcc): <compiler>
 	$ enter compilation/optimisation flags for C compiler (-O3 -std=c99 -DgFortran):
-	$ enter command for library archiving (libtool -static -s -o): 
-	$ enter full name of cfitsio library (libcfitsio.a): 
+	$ enter command for library archiving (libtool -static -s -o):
+	$ enter full name of cfitsio library (libcfitsio.a):
 	$ enter location of cfitsio library (<CFITSIO path>/lib):
 	$ (this assumes that PGPLOT is already installed on your computer) (y|N) N
 	$ Enter choice                                      (1): 1
@@ -148,7 +157,7 @@ to make sure everything is installed correctly.
 	$ cd $SSHT
 	$ make
 
-On linux, you will have to change line 42 of the makefile to read 
+On linux, you will have to change line 42 of the makefile to read
 .. code-block:: bash
 
 	FFTWDIR      = $(FFTW)
@@ -166,7 +175,7 @@ Once again go ahead and test that SSHT is working:
 	$ cd $SO3
 	$ make
 
-As before, on linux, you will have to change line 48 of the makefile to read 
+As before, on linux, you will have to change line 48 of the makefile to read
 .. code-block:: bash
 
 	FFTWDIR      = $(FFTW)
