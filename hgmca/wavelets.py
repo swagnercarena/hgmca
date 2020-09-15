@@ -140,8 +140,6 @@ def s2dw_harmonic(wav_har,scale_har,band_lim,scale_int,n_quads,j_min):
 		scale_har[ell] = np.sqrt((2*ell+1)/(4*np.pi))*np.sqrt(
 			phi2[ell+j_min*band_lim])
 
-	del phi2
-
 
 @numba.njit
 def get_max_nside(scale_int,j,nside):
