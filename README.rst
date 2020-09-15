@@ -8,6 +8,9 @@ hgmca - A hierarchical component separation algorithm based on sparsity in the w
 	:target: https://hgmca.readthedocs.io/en/latest/?badge=latest
 	:alt: Documentation Status
 
+.. image:: https://coveralls.io/repos/github/swagnercarena/hgmca/badge.svg?branch=master
+	:target: https://coveralls.io/github/swagnercarena/hgmca?branch=master
+
 .. image:: https://img.shields.io/badge/license-MIT-blue.svg?style=flat
     :target: https://github.com/swagnercarena/hgmca/blob/s2let/LICENSE
 

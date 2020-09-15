@@ -17,7 +17,7 @@ before_install:
   - pip install python-coveralls
 
 install:
-    - pip install .
+    - pip install -e .
     - pip install -r requirements.txt
 
 script:
