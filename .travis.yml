@@ -22,7 +22,7 @@ install:
 
 script:
   - cd test
-  - coverage run --source hgmca -m unittest -v *_tests.py
+  - coverage run --source hgmca -m unittest -v *_test.py
 
 after_success:
   - coveralls
