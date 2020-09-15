@@ -2,7 +2,7 @@ import numpy as np
 import healpy as hp
 import subprocess, os, sys, math, numba
 healpy_weights_folder = os.path.dirname(os.path.abspath(__file__))
-healpy_weights_folder += '../healpy_data'
+healpy_weights_folder += '../healpy-data'
 
 
 @numba.njit

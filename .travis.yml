@@ -2,7 +2,7 @@ language: python
 
 python:
     - '3.6'
-   
+
 cache:
     ccache: true
     pip: true
@@ -11,6 +11,7 @@ before_install:
   - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/travis/build/swagnercarena/hgmca/s2letbin
   - sudo apt-get install gfortran
   - unzip s2letbin_nersc.zip
+  - git clone https://github.com/healpy/healpy-data.git
   - pip install coveralls
   - pip install python-coveralls
 
