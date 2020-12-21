@@ -196,16 +196,51 @@ class TestBaseFunctions(unittest.TestCase):
 			np.ones(wavelet_dict['n_scales']+1)*1e-10)
 
 		# Compare the output to the s2let C code output
-		scaling_python = hp.read_map(wavelet_dict['scale_map']['path'])
-		scaling_s2let = hp.read_map(self.root_path +
-			'gmca_full_90_GHZ_wav_scal_256_3_1.fits')
+		scaling_python = hp.read_map(wavelet_dict['scale_map']['path'],
+			nest=True)
+		scaling_s2let = hp.reorder(hp.read_map(self.root_path +
+			'gmca_full_90_GHZ_wav_scal_256_3_1.fits'),r2n=True)
 		self.assertLess(np.mean(np.abs(scaling_python-scaling_s2let)),0.001)
 
 		# Repeat the same for the wavelet maps
 		for j in range(j_min,wavelet_dict['j_max']+1):
-			wav_python = hp.read_map(wavelet_dict['wav_%d_map'%(j)]['path'])
-			wav_s2let = hp.read_map(self.root_path +
-				'gmca_full_90_GHZ_wav_wav_256_3_1_%d.fits'%(j))
+			wav_python = hp.read_map(wavelet_dict['wav_%d_map'%(j)]['path'],
+				nest=True)
+			wav_s2let = hp.reorder(hp.read_map(self.root_path +
+				'gmca_full_90_GHZ_wav_wav_256_3_1_%d.fits'%(j)),r2n=True)
+			self.assertLess(np.mean(np.abs(wav_python-wav_s2let)),0.01)
+
+		# Repeat the same test with the precomputed flag
+		wavelet_dict = wavelets.s2dw_wavelet_tranform(input_map,
+			output_map_prefix,band_lim,scale_int,j_min,input_fwhm,
+			n_quads=1000,precomputed=True)
+
+		# Check the properties we want are set
+		self.assertEqual(wavelet_dict['band_lim'],band_lim)
+		self.assertEqual(wavelet_dict['scale_int'],scale_int)
+		self.assertEqual(wavelet_dict['j_min'],j_min)
+		self.assertEqual(wavelet_dict['j_max'],wavelets.calc_j_max(band_lim,
+			scale_int))
+		self.assertEqual(wavelet_dict['original_nside'],128)
+		self.assertEqual(wavelet_dict['input_fwhm'],input_fwhm)
+		self.assertEqual(wavelet_dict['n_scales'],wavelets.calc_j_max(band_lim,
+			scale_int)-j_min+2)
+		np.testing.assert_equal(wavelet_dict['target_fwhm'],
+			np.ones(wavelet_dict['n_scales']+1)*1e-10)
+
+		# Compare the output to the s2let C code output
+		scaling_python = hp.read_map(wavelet_dict['scale_map']['path'],
+			nest=True)
+		scaling_s2let = hp.reorder(hp.read_map(self.root_path +
+			'gmca_full_90_GHZ_wav_scal_256_3_1.fits'),r2n=True)
+		self.assertLess(np.mean(np.abs(scaling_python-scaling_s2let)),0.001)
+
+		# Repeat the same for the wavelet maps
+		for j in range(j_min,wavelet_dict['j_max']+1):
+			wav_python = hp.read_map(wavelet_dict['wav_%d_map'%(j)]['path'],
+				nest=True)
+			wav_s2let = hp.reorder(hp.read_map(self.root_path +
+				'gmca_full_90_GHZ_wav_wav_256_3_1_%d.fits'%(j)),r2n=True)
 			self.assertLess(np.mean(np.abs(wav_python-wav_s2let)),0.01)
 
 		# Remove all of the maps we created.
@@ -218,7 +253,7 @@ class TestBaseFunctions(unittest.TestCase):
 		# Healpy inputs are in radians but arcminutes is a more natural unit
 		a2r = np.pi/180/60
 
-		# 1 arcmin input assumed (very small)
+		# 1 arcmin input assumed (small)
 		input_fwhm = a2r
 
 		# Try outputting at two different resolutions and confirm that
@@ -242,13 +277,15 @@ class TestBaseFunctions(unittest.TestCase):
 		# Set the limit for the comparison to the maximum ell used to
 		# write the map.
 		scale_lim = min(int(scale_int**j_min),band_lim)
-		big_alm = hp.map2alm(hp.read_map(
-			wavelet_dict_big['scale_map']['path']),lmax=scale_lim)
+		big_alm = hp.map2alm(hp.reorder(hp.read_map(
+			wavelet_dict_big['scale_map']['path'],nest=True),n2r=True),
+			lmax=scale_lim)
 		big_cl = hp.alm2cl(hp.almxfl(big_alm,1/hp.gauss_beam(
 			target_fwhm_big[0],lmax=scale_lim-1)))
 
-		small_alm = hp.map2alm(hp.read_map(
-			wavelet_dict_small['scale_map']['path']),lmax=scale_lim)
+		small_alm = hp.map2alm(hp.reorder(hp.read_map(
+			wavelet_dict_small['scale_map']['path'],nest=True),n2r=True),
+			lmax=scale_lim)
 		small_cl = hp.alm2cl(hp.almxfl(small_alm,1/hp.gauss_beam(
 			target_fwhm_small[0],lmax=scale_lim-1)))
 
@@ -259,13 +296,15 @@ class TestBaseFunctions(unittest.TestCase):
 		# Repeat the same comparison for all of the wavelet maps.
 		for j in range(j_min,wavelet_dict['j_max']+1):
 			wav_lim = min(int(scale_int**(j+1)),band_lim)
-			big_alm = hp.map2alm(hp.read_map(
-				wavelet_dict_big['wav_%d_map'%(j)]['path']),lmax=wav_lim)
+			big_alm = hp.map2alm(hp.reorder(hp.read_map(
+				wavelet_dict_big['wav_%d_map'%(j)]['path'],nest=True),n2r=True),
+				lmax=wav_lim)
 			big_cl = hp.alm2cl(hp.almxfl(big_alm,1/hp.gauss_beam(
 				target_fwhm_big[0],lmax=wav_lim-1)))
 
-			small_alm = hp.map2alm(hp.read_map(
-				wavelet_dict_small['wav_%d_map'%(j)]['path']),lmax=wav_lim)
+			small_alm = hp.map2alm(hp.reorder(hp.read_map(
+				wavelet_dict_small['wav_%d_map'%(j)]['path'],nest=True),n2r=True),
+				lmax=wav_lim)
 			small_cl = hp.alm2cl(hp.almxfl(small_alm,1/hp.gauss_beam(
 				target_fwhm_small[0],lmax=wav_lim-1)))
 
@@ -286,13 +325,15 @@ class TestBaseFunctions(unittest.TestCase):
 		# Set the limit for the comparison to the maximum ell used to
 		# write the map.
 		scale_lim = min(int(scale_int**j_min),band_lim)
-		big_alm = hp.map2alm(hp.read_map(
-			wavelet_dict_big['scale_map']['path']),lmax=scale_lim)
+		big_alm = hp.map2alm(hp.reorder(hp.read_map(
+			wavelet_dict_big['scale_map']['path'],nest=True),n2r=True),
+			lmax=scale_lim)
 		big_cl = hp.alm2cl(hp.almxfl(big_alm,hp.gauss_beam(
 			input_fwhm,lmax=scale_lim-1)))
 
-		big_alm2 = hp.map2alm(hp.read_map(
-			wavelet_dict_big2['scale_map']['path']),lmax=scale_lim)
+		big_alm2 = hp.map2alm(hp.reorder(hp.read_map(
+			wavelet_dict_big2['scale_map']['path'],nest=True),n2r=True),
+			lmax=scale_lim)
 		big_cl2 = hp.alm2cl(hp.almxfl(big_alm2,hp.gauss_beam(
 			input_fwhm2,lmax=scale_lim-1)))
 
@@ -303,13 +344,15 @@ class TestBaseFunctions(unittest.TestCase):
 		# Repeat the same comparison for all of the wavelet maps.
 		for j in range(j_min,wavelet_dict['j_max']+1):
 			wav_lim = min(int(scale_int**(j+1)),band_lim)
-			big_alm = hp.map2alm(hp.read_map(
-				wavelet_dict_big['wav_%d_map'%(j)]['path']),lmax=wav_lim)
+			big_alm = hp.map2alm(hp.reorder(hp.read_map(
+				wavelet_dict_big['wav_%d_map'%(j)]['path'],nest=True),n2r=True),
+				lmax=wav_lim)
 			big_cl = hp.alm2cl(hp.almxfl(big_alm,hp.gauss_beam(
 				input_fwhm,lmax=wav_lim-1)))
 
-			big_alm2 = hp.map2alm(hp.read_map(
-				wavelet_dict_big2['wav_%d_map'%(j)]['path']),lmax=wav_lim)
+			big_alm2 = hp.map2alm(hp.reorder(hp.read_map(
+				wavelet_dict_big2['wav_%d_map'%(j)]['path'],nest=True),n2r=True),
+				lmax=wav_lim)
 			big_cl2 = hp.alm2cl(hp.almxfl(big_alm2,hp.gauss_beam(
 				input_fwhm2,lmax=wav_lim-1)))
 
@@ -404,112 +447,111 @@ class TestBaseFunctions(unittest.TestCase):
 		for j in range(j_min,wavelet_dict['j_max']+1):
 			os.remove(wavelet_dict['wav_%d_map'%(j)]['path'])
 
+	def test_multifrequency_wavelet_maps_gmca(self):
+		# Test that the multifrequency maps agree with our expectations.
+		# We'll do our tests using just two frequencies, and make both
+		# frequencie the same map. We'll change the nside to make sure all of
+		# the funcitonality is working as intended.
+		# Check that the python and s2let output match
+		a2r = np.pi/180/60
+		input_map_path = self.root_path + 'gmca_test_full_sim_90_GHZ.fits'
+		input_map_path_256 = (self.root_path +
+			'gmca_test_full_sim_90_GHZ_256.fits')
+		input_maps_dict = {
+			'30':{'band_lim':256,'fwhm':33*a2r,'path':input_map_path,
+				'nside':128},
+			'44':{'band_lim':512,'fwhm':5*a2r,'path':input_map_path_256,
+				'nside':256}}
+		output_maps_prefix = self.root_path + 's2dw_test'
+		analysis_type = 'gmca'
+		scale_int = 2
+		j_min = 1
+		wavelets.multifrequency_wavelet_maps(input_maps_dict,
+			output_maps_prefix,analysis_type,scale_int,j_min)
 
-class TestAxisymWaveletTransformation(unittest.TestCase):
+		# Generate the wavelet maps using the python code
+		wav_analysis_maps = wavelets.multifrequency_wavelet_maps(
+			input_maps_dict,output_maps_prefix,analysis_type,scale_int,j_min)
 
-	def __init__(self, *args, **kwargs):
-		super(TestAxisymWaveletTransformation, self).__init__(*args, **kwargs)
-		# Open up the config file.
-		self.cmb_maps_path = os.path.join(
-			os.path.dirname(os.path.abspath(__file__)),'test_data/')
+		# Now we can manually acess the maps and make sure everything ended
+		# up in the right place. Star with the scale maps.
+		# Check the shape for the first group of scales
+		n_pix = hp.nside2npix(wavelets.get_max_nside(scale_int,j_min,
+			256))
+		for j in range(j_min,9):
+			n_pix += hp.nside2npix(wavelets.get_max_nside(scale_int,j+1,
+				256))
+		self.assertTupleEqual(wav_analysis_maps['0'].shape,(2,n_pix))
+		# Check the shape for the second group of scales (only includes one
+		# scale and one frequency).
+		n_pix = hp.nside2npix(wavelets.get_max_nside(scale_int,10,
+			256))
+		self.assertTupleEqual(wav_analysis_maps['1'].shape,(1,n_pix))
 
-	def test_reconstruction(self):
-		# The reconstruction still seems to have considerable error, so this simply
-		# checks that the error is small.
-		hpx_map_file = self.cmb_maps_path + 'gmca_test_full_sim_90_GHZ.fits'
-		wav_map_prefix = self.cmb_maps_path + 'gmca_90'
-		recon_map_file = self.cmb_maps_path + 'gmca_test_full_sim_90_GHZ_recon.fits'
-		wav_b = 3
-		min_scale = 1
-		band_lim = 128*3
-		nside = 128
-		# No subsampling here
-		samp = 1
-		wav_t = wavelets.AxisymWaveletTransformation(wav_b,min_scale,band_lim,
-			samp=samp)
-		wav_coeff = wav_t.get_wavelet_coeff(hpx_map_file,wav_map_prefix)
-		wav_t.get_map_from_wavelet_coeff(recon_map_file,nside,wav_map_prefix,
-			wav_coeff)
-		wav_t._clean_prefix(wav_map_prefix)
-		orig_map = hp.read_map(hpx_map_file,verbose=False)
-		recon_map = hp.read_map(recon_map_file,verbose=False)
+		# Now directly compare the values in the groupped array to the
+		# values of the original map. Start with our first
+		# frequency
+		input_map = hp.read_map(input_map_path,dtype=np.float64,
+			verbose=False)
+		wavelet_dict = wavelets.s2dw_wavelet_tranform(input_map,
+			output_maps_prefix+'t30',input_maps_dict['30']['band_lim'],
+			scale_int,j_min,input_maps_dict['30']['fwhm'],
+			target_fwhm=np.ones(9)*input_maps_dict['44']['fwhm'])
+		n_pix = 0
+		nside = wavelets.get_max_nside(scale_int,j_min,512)
+		dn = hp.nside2npix(nside)
+		scale_map = hp.read_map(wavelet_dict['scale_map']['path'],nest=True)
+		np.testing.assert_almost_equal(wav_analysis_maps['0'][0,n_pix:n_pix+dn],
+			scale_map)
+		for j in range(j_min,9):
+			n_pix += dn
+			nside = wavelets.get_max_nside(scale_int,j+1,512)
+			dn = hp.nside2npix(nside)
+			wav_map = hp.ud_grade(hp.read_map(
+				wavelet_dict['wav_%d_map'%(j)]['path'],nest=True,
+				dtype=np.float64),nside,order_in='NESTED')
+			np.testing.assert_almost_equal(
+				wav_analysis_maps['0'][0,n_pix:n_pix+dn],wav_map)
 
-		self.assertLess(np.mean(np.abs(orig_map-recon_map))/
-			np.mean(np.abs(orig_map)),0.1)
-		self.assertLess(np.max(np.abs(orig_map-recon_map))/
-			np.max(np.abs(orig_map)),0.1)
+		# Now do the same for our second frequency.
+		input_map_256 = hp.read_map(input_map_path_256,dtype=np.float64,
+			verbose=False)
+		wavelet_dict_256 = wavelets.s2dw_wavelet_tranform(input_map_256,
+			output_maps_prefix+'t44',input_maps_dict['44']['band_lim'],
+			scale_int,j_min,input_maps_dict['44']['fwhm'],
+			target_fwhm=np.ones(10)*input_maps_dict['44']['fwhm'])
+		n_pix = 0
+		nside = wavelets.get_max_nside(scale_int,j_min,512)
+		dn = hp.nside2npix(nside)
+		scale_map = hp.read_map(wavelet_dict_256['scale_map']['path'],
+			nest=True)
+		np.testing.assert_almost_equal(wav_analysis_maps['0'][1,n_pix:n_pix+dn],
+			scale_map)
+		for j in range(j_min,9):
+			n_pix += dn
+			nside = wavelets.get_max_nside(scale_int,j+1,512)
+			dn = hp.nside2npix(nside)
+			wav_map = hp.ud_grade(hp.read_map(
+				wavelet_dict_256['wav_%d_map'%(j)]['path'],nest=True,
+				dtype=np.float64),nside,order_in='NESTED')
+			np.testing.assert_almost_equal(
+				wav_analysis_maps['0'][1,n_pix:n_pix+dn],wav_map)
 
-	def test_recon_bandlim(self):
-		# Tests how the reconstruction improves with increasing bandlimit
-		hpx_map_file = self.cmb_maps_path + 'gmca_test_full_sim_90_GHZ.fits'
-		wav_map_prefix = self.cmb_maps_path + 'gmca_90'
-		small_b_lim_map = self.cmb_maps_path + 'gmca_test_full_sim_90_GHZ_128_recon.fits'
-		large_b_lim_map	= self.cmb_maps_path + 'gmca_test_full_sim_90_GHZ_420_recon.fits'
-		wav_b = 3
-		min_scale = 1
-		nside = 128
-		samp = 1
+		# Delete all the superfluous maps that have been made for testing
+		os.remove(wavelet_dict['scale_map']['path'])
+		for j in range(j_min,wavelet_dict['j_max']+1):
+			os.remove(wavelet_dict['wav_%d_map'%(j)]['path'])
 
-		wav_t_128  = wavelets.AxisymWaveletTransformation(wav_b,min_scale,
-			128,samp=samp)
-		wav_coeff = wav_t_128.get_wavelet_coeff(hpx_map_file,wav_map_prefix)
-		wav_t_128.get_map_from_wavelet_coeff(small_b_lim_map,nside,wav_map_prefix,
-			wav_coeff)
-		wav_t_128._clean_prefix(wav_map_prefix)
+		os.remove(wavelet_dict['scale_map']['path'][:-16]+'30_scaling.fits')
+		for j in range(j_min,wavelet_dict['j_max']+1):
+			os.remove(wavelet_dict['wav_%d_map'%(j)]['path'][:-14]+
+				'30_wav_%d.fits'%(j))
 
-		wav_t_420 = wavelets.AxisymWaveletTransformation(wav_b,min_scale,
-			420,samp=samp)
-		wav_coeff = wav_t_420.get_wavelet_coeff(hpx_map_file,wav_map_prefix)
-		wav_t_420.get_map_from_wavelet_coeff(large_b_lim_map,nside,wav_map_prefix,
-			wav_coeff)
-		wav_t_420._clean_prefix(wav_map_prefix)
+		os.remove(wavelet_dict_256['scale_map']['path'])
+		for j in range(j_min,wavelet_dict_256['j_max']+1):
+			os.remove(wavelet_dict_256['wav_%d_map'%(j)]['path'])
 
-		s_b_lim_hpx_map = hp.read_map(small_b_lim_map,verbose=False)
-		l_b_lim_hpx_map = hp.read_map(large_b_lim_map,verbose=False)
-		orig_map = hp.read_map(hpx_map_file,verbose=False)
-
-		self.assertLess(np.mean(np.abs(orig_map-l_b_lim_hpx_map)),
-			np.mean(np.abs(orig_map-s_b_lim_hpx_map)))
-		self.assertLess(np.max(np.abs(orig_map-l_b_lim_hpx_map)),
-			np.max(np.abs(orig_map-s_b_lim_hpx_map)))
-
-	def test_subsampling(self):
-		# Test that subsampling does not reduce the quality of the reconstruction
-		hpx_map_file = self.cmb_maps_path + 'gmca_test_full_sim_90_GHZ.fits'
-		wav_map_prefix = self.cmb_maps_path + 'gmca_90'
-		sub_samp_map = self.cmb_maps_path + 'gmca_test_full_sim_90_GHZ_sub_recon.fits'
-		full_samp_map = self.cmb_maps_path + 'gmca_test_full_sim_90_GHZ_full_recon.fits'
-		over_samp_map = self.cmb_maps_path + 'gmca_test_full_sim_90_GHZ_over_recon.fits'
-		wav_b = 3
-		min_scale = 1
-		nside = 128
-
-		wav_t_s0 = wavelets.AxisymWaveletTransformation(wav_b,min_scale,
-			128,samp=0)
-		wav_t_s1 = wavelets.AxisymWaveletTransformation(wav_b,min_scale,
-			128,samp=1)
-		wav_t_s2 = wavelets.AxisymWaveletTransformation(wav_b,min_scale,
-			128,samp=2)
-
-		wav_coeff = wav_t_s0.get_wavelet_coeff(hpx_map_file,wav_map_prefix)
-		wav_t_s0.get_map_from_wavelet_coeff(sub_samp_map,nside,wav_map_prefix,
-			wav_coeff)
-		wav_t_s0._clean_prefix(wav_map_prefix)
-
-		wav_coeff = wav_t_s1.get_wavelet_coeff(hpx_map_file,wav_map_prefix)
-		wav_t_s1.get_map_from_wavelet_coeff(full_samp_map,nside,wav_map_prefix,
-			wav_coeff)
-		wav_t_s1._clean_prefix(wav_map_prefix)
-
-		wav_coeff = wav_t_s2.get_wavelet_coeff(hpx_map_file,wav_map_prefix)
-		wav_t_s2.get_map_from_wavelet_coeff(over_samp_map,nside,wav_map_prefix,
-			wav_coeff)
-		wav_t_s2._clean_prefix(wav_map_prefix)
-
-		s0_hpx_map = hp.read_map(sub_samp_map,verbose=False)
-		s1_hpx_map = hp.read_map(full_samp_map,verbose=False)
-		s2_hpx_map = hp.read_map(over_samp_map,verbose=False)
-
-		# Allow for a small amount of floating point error
-		self.assertLess(np.sum(np.abs(s0_hpx_map-s1_hpx_map)),0.1)
-		self.assertLess(np.sum(np.abs(s1_hpx_map-s2_hpx_map)),0.1)
+		os.remove(wavelet_dict_256['scale_map']['path'][:-16]+'44_scaling.fits')
+		for j in range(j_min,wavelet_dict_256['j_max']+1):
+			os.remove(wavelet_dict_256['wav_%d_map'%(j)]['path'][:-14]+
+				'44_wav_%d.fits'%(j))
