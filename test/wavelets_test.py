@@ -3,12 +3,15 @@ import healpy as hp
 from hgmca import wavelets
 import unittest, os
 import scipy.integrate as integrate
+import matplotlib.pyplot as plt
 
 
 class TestBaseFunctions(unittest.TestCase):
 
 	def setUp(self, *args, **kwargs):
 		self.root_path = os.path.dirname(os.path.abspath(__file__))+'/test_data/'
+		# Remember, healpy expects radians but we use arcmins.
+		self.a2r = np.pi/180/60
 
 	def test_k_sdw(self):
 		# Test that the modified Schwartz function is returning the
@@ -249,17 +252,14 @@ class TestBaseFunctions(unittest.TestCase):
 			os.remove(wavelet_dict['wav_%d_map'%(j)]['path'])
 
 		# Now we also want to make sure that setting a target beam behaves
-		# as we expect
-		# Healpy inputs are in radians but arcminutes is a more natural unit
-		a2r = np.pi/180/60
-
+		# as we expect.
 		# 1 arcmin input assumed (small)
-		input_fwhm = a2r
+		input_fwhm = 1
 
 		# Try outputting at two different resolutions and confirm that
 		# things behave as expected
-		target_fwhm_big = np.ones(wavelet_dict['n_scales']+1)*a2r*30
-		target_fwhm_small = np.ones(wavelet_dict['n_scales']+1)*a2r*20
+		target_fwhm_big = np.ones(wavelet_dict['n_scales']+1)*30
+		target_fwhm_small = np.ones(wavelet_dict['n_scales']+1)*20
 		output_map_prefix_big = self.root_path + 's2dw_test_big'
 		output_map_prefix_small = self.root_path + 's2dw_test_small'
 
@@ -281,13 +281,13 @@ class TestBaseFunctions(unittest.TestCase):
 			wavelet_dict_big['scale_map']['path'],nest=True),n2r=True),
 			lmax=scale_lim)
 		big_cl = hp.alm2cl(hp.almxfl(big_alm,1/hp.gauss_beam(
-			target_fwhm_big[0],lmax=scale_lim-1)))
+			target_fwhm_big[0]*self.a2r,lmax=scale_lim-1)))
 
 		small_alm = hp.map2alm(hp.reorder(hp.read_map(
 			wavelet_dict_small['scale_map']['path'],nest=True),n2r=True),
 			lmax=scale_lim)
 		small_cl = hp.alm2cl(hp.almxfl(small_alm,1/hp.gauss_beam(
-			target_fwhm_small[0],lmax=scale_lim-1)))
+			target_fwhm_small[0]*self.a2r,lmax=scale_lim-1)))
 
 		# Ignore small cls where numerical error will dominate
 		np.testing.assert_almost_equal(big_cl[big_cl>1e-9]/
@@ -300,13 +300,13 @@ class TestBaseFunctions(unittest.TestCase):
 				wavelet_dict_big['wav_%d_map'%(j)]['path'],nest=True),n2r=True),
 				lmax=wav_lim)
 			big_cl = hp.alm2cl(hp.almxfl(big_alm,1/hp.gauss_beam(
-				target_fwhm_big[0],lmax=wav_lim-1)))
+				target_fwhm_big[0]*self.a2r,lmax=wav_lim-1)))
 
 			small_alm = hp.map2alm(hp.reorder(hp.read_map(
 				wavelet_dict_small['wav_%d_map'%(j)]['path'],nest=True),n2r=True),
 				lmax=wav_lim)
 			small_cl = hp.alm2cl(hp.almxfl(small_alm,1/hp.gauss_beam(
-				target_fwhm_small[0],lmax=wav_lim-1)))
+				target_fwhm_small[0]*self.a2r,lmax=wav_lim-1)))
 
 			# Ignore the last cl, it's zero. Also ignore values that should
 			# be 0 since numerical error will dominate.
@@ -315,7 +315,7 @@ class TestBaseFunctions(unittest.TestCase):
 				decimal=2)
 
 		# Now make sure that the input beam is also accounted for
-		input_fwhm2 = a2r*2
+		input_fwhm2 = 2
 		output_map_prefix_big2 = self.root_path + 's2dw_test_big2'
 		wavelet_dict_big2 = wavelets.s2dw_wavelet_tranform(input_map,
 			output_map_prefix_big2,band_lim,scale_int,j_min,input_fwhm2,
@@ -329,13 +329,13 @@ class TestBaseFunctions(unittest.TestCase):
 			wavelet_dict_big['scale_map']['path'],nest=True),n2r=True),
 			lmax=scale_lim)
 		big_cl = hp.alm2cl(hp.almxfl(big_alm,hp.gauss_beam(
-			input_fwhm,lmax=scale_lim-1)))
+			input_fwhm*self.a2r,lmax=scale_lim-1)))
 
 		big_alm2 = hp.map2alm(hp.reorder(hp.read_map(
 			wavelet_dict_big2['scale_map']['path'],nest=True),n2r=True),
 			lmax=scale_lim)
 		big_cl2 = hp.alm2cl(hp.almxfl(big_alm2,hp.gauss_beam(
-			input_fwhm2,lmax=scale_lim-1)))
+			input_fwhm2*self.a2r,lmax=scale_lim-1)))
 
 		# Ignore small cls where numerical error will dominate
 		np.testing.assert_almost_equal(big_cl[big_cl>1e-9]/
@@ -348,13 +348,13 @@ class TestBaseFunctions(unittest.TestCase):
 				wavelet_dict_big['wav_%d_map'%(j)]['path'],nest=True),n2r=True),
 				lmax=wav_lim)
 			big_cl = hp.alm2cl(hp.almxfl(big_alm,hp.gauss_beam(
-				input_fwhm,lmax=wav_lim-1)))
+				input_fwhm*self.a2r,lmax=wav_lim-1)))
 
 			big_alm2 = hp.map2alm(hp.reorder(hp.read_map(
 				wavelet_dict_big2['wav_%d_map'%(j)]['path'],nest=True),n2r=True),
 				lmax=wav_lim)
 			big_cl2 = hp.alm2cl(hp.almxfl(big_alm2,hp.gauss_beam(
-				input_fwhm2,lmax=wav_lim-1)))
+				input_fwhm2*self.a2r,lmax=wav_lim-1)))
 
 			# Ignore the last cl, it's zero. Also ignore values that should
 			# be 0 since numerical error will dominate.
@@ -410,8 +410,7 @@ class TestBaseFunctions(unittest.TestCase):
 
 		# Now we'll repeat the same process but with a different
 		# set of target beams.
-		a2r = np.pi/180/60
-		target_fwhm = np.ones(wavelet_dict['n_scales']+1)*a2r*5
+		target_fwhm = np.ones(wavelet_dict['n_scales']+1)*5
 		output_fwhm = 1e-10
 
 		wavelet_dict = wavelets.s2dw_wavelet_tranform(input_map,
@@ -429,7 +428,7 @@ class TestBaseFunctions(unittest.TestCase):
 			os.remove(wavelet_dict['wav_%d_map'%(j)]['path'])
 
 		# Now we'll repeat the same process but with a output beam.
-		output_fwhm = a2r*30
+		output_fwhm = 30
 		wavelet_dict = wavelets.s2dw_wavelet_tranform(input_map,
 			output_map_prefix,band_lim,scale_int,j_min,input_fwhm,
 			target_fwhm=target_fwhm,n_quads=n_quads)
@@ -437,7 +436,7 @@ class TestBaseFunctions(unittest.TestCase):
 			wavelet_dict,output_fwhm,n_quads=n_quads)
 
 		input_fwhm_map = hp.alm2map(hp.almxfl(input_alm,hp.gauss_beam(
-			output_fwhm)),nside=128)
+			output_fwhm*self.a2r)),nside=128)
 
 		self.assertLess(np.mean(np.abs(fwhm_map-input_fwhm_map))/
 			np.mean(np.abs(input_fwhm_map)),0.05)
@@ -453,25 +452,31 @@ class TestBaseFunctions(unittest.TestCase):
 		# frequencie the same map. We'll change the nside to make sure all of
 		# the funcitonality is working as intended.
 		# Check that the python and s2let output match
-		a2r = np.pi/180/60
 		input_map_path = self.root_path + 'gmca_test_full_sim_90_GHZ.fits'
 		input_map_path_256 = (self.root_path +
 			'gmca_test_full_sim_90_GHZ_256.fits')
 		input_maps_dict = {
-			'30':{'band_lim':256,'fwhm':33*a2r,'path':input_map_path,
+			'30':{'band_lim':256,'fwhm':33,'path':input_map_path,
 				'nside':128},
-			'44':{'band_lim':512,'fwhm':5*a2r,'path':input_map_path_256,
+			'44':{'band_lim':512,'fwhm':5,'path':input_map_path_256,
 				'nside':256}}
 		output_maps_prefix = self.root_path + 's2dw_test'
 		analysis_type = 'gmca'
 		scale_int = 2
 		j_min = 1
-		wavelets.multifrequency_wavelet_maps(input_maps_dict,
-			output_maps_prefix,analysis_type,scale_int,j_min)
 
 		# Generate the wavelet maps using the python code
 		wav_analysis_maps = wavelets.multifrequency_wavelet_maps(
 			input_maps_dict,output_maps_prefix,analysis_type,scale_int,j_min)
+
+		# Check the key values for some of the parameters we want saved for
+		# reconstruction
+		self.assertEqual(wav_analysis_maps['analysis_type'],'gmca')
+		self.assertEqual(wav_analysis_maps['scale_int'],scale_int)
+		self.assertEqual(wav_analysis_maps['j_min'],j_min)
+		self.assertEqual(wav_analysis_maps['j_max'],9)
+		self.assertListEqual(list(wav_analysis_maps['input_maps_dict'].keys()),
+			list(input_maps_dict.keys()))
 
 		# Now we can manually acess the maps and make sure everything ended
 		# up in the right place. Star with the scale maps.
@@ -555,3 +560,56 @@ class TestBaseFunctions(unittest.TestCase):
 		for j in range(j_min,wavelet_dict_256['j_max']+1):
 			os.remove(wavelet_dict_256['wav_%d_map'%(j)]['path'][:-14]+
 				'44_wav_%d.fits'%(j))
+
+	def test_wavelet_maps_to_real_gmca(self):
+		# Here we'll test a sort of identity transform. We'll pass forward one
+		# map and then make sure we get the same map back.
+		input_map_path = self.root_path + 'gmca_test_full_sim_90_GHZ.fits'
+		input_maps_dict = {
+			'30':{'band_lim':64,'fwhm':33,'path':input_map_path,
+				'nside':128},
+			'44':{'band_lim':256,'fwhm':1e-10,'path':input_map_path,
+				'nside':128}}
+		output_maps_prefix = self.root_path + 's2dw_test'
+		analysis_type = 'gmca'
+		scale_int = 2
+		j_min = 1
+		wav_analysis_maps = wavelets.multifrequency_wavelet_maps(
+			input_maps_dict,output_maps_prefix,analysis_type,scale_int,j_min)
+
+		# Go through and drop the first frequency
+		wav_analysis_maps['0'] = wav_analysis_maps['0'][1]
+		wav_analysis_maps['1'] = np.squeeze(wav_analysis_maps['1'])
+
+		# Now pass these into the reconstruction function
+		output_maps_prefix_recon = self.root_path + 's2dw_test_recon'
+		recon_map = wavelets.wavelet_maps_to_real(wav_analysis_maps,
+			output_maps_prefix_recon)
+
+		# We want to compare to a map that's undergone the identity transform
+		# in the wavelet space
+		input_map = hp.read_map(input_map_path,dtype=np.float64,
+			verbose=False)
+		wavelet_dict = wavelets.s2dw_wavelet_tranform(input_map,
+			output_maps_prefix,input_maps_dict['44']['band_lim'],scale_int,j_min,
+			input_maps_dict['44']['fwhm'])
+		identity_map = wavelets.s2dw_wavelet_inverse_transform(wavelet_dict,
+			input_maps_dict['44']['fwhm'])
+		np.testing.assert_almost_equal(recon_map,identity_map)
+
+		# Delete all the superfluous maps that have been made for testing
+		os.remove(wavelet_dict['scale_map']['path'])
+		for j in range(j_min,wavelet_dict['j_max']+1):
+			os.remove(wavelet_dict['wav_%d_map'%(j)]['path'])
+
+		os.remove(output_maps_prefix_recon+'_scaling.fits')
+		for j in range(j_min,wavelet_dict['j_max']+1):
+			os.remove(output_maps_prefix_recon+'_wav_%d.fits'%(j))
+
+		os.remove(output_maps_prefix+'30_scaling.fits')
+		for j in range(j_min,7):
+			os.remove(output_maps_prefix+'30_wav_%d.fits'%(j))
+
+		os.remove(output_maps_prefix+'44_scaling.fits')
+		for j in range(j_min,wavelet_dict['j_max']+1):
+			os.remove(output_maps_prefix+'44_wav_%d.fits'%(j))

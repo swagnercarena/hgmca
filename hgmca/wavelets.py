@@ -1,12 +1,12 @@
 import numpy as np
 import healpy as hp
-import subprocess
 import os
-import sys
-import math
 import numba
 file_path = os.path.dirname(os.path.abspath(__file__))
 healpy_weights_folder = os.path.join(file_path,'../healpy-data')
+
+# Define the global arcmin to radian conversion
+a2r = np.pi/180/60
 
 
 @numba.njit
@@ -206,12 +206,11 @@ def s2dw_wavelet_tranform(input_map,output_maps_prefix,band_lim,scale_int,
 		scale_int (int): The integer used as the basis for scaling
 			the wavelet functions
 		j_min (int): The minimum wavelet scale to use in the decomposition
-		input_fwhm (float): In radians, the fwhm of the input map. Units of
-			radians.
+		input_fwhm (float): The fwhm of the input map. Units of arcmin.
 		target_fwhm ([float,...]): A list of the fwhm to use for each
-			scale in radians. In general this should be set to the lowest
+			scale. In general this should be set to the lowest
 			resolution map that will be analyzed at that scale. If None,
-			an arbitrarily small target beam will be used. Units of radians.
+			an arbitrarily small target beam will be used. Units of arcmin.
 		n_quads (int): Using the trapezoid rule, the number of
 			bins to consider for integration
 		precomputed (float): If true, will grab paths to precomputed maps
@@ -293,8 +292,8 @@ def s2dw_wavelet_tranform(input_map,output_maps_prefix,band_lim,scale_int,
 		norm_factor = np.sqrt((4*np.pi)/(2*ell+1))
 
 		# Grab the ratio of the input to target beam for the
-		scale_bl = hp.gauss_beam(target_fwhm[0],lmax=band_lim-1)/hp.gauss_beam(
-			input_fwhm,lmax=band_lim-1)
+		scale_bl = (hp.gauss_beam(target_fwhm[0]*a2r,lmax=band_lim-1)/
+			hp.gauss_beam(input_fwhm*a2r,lmax=band_lim-1))
 
 		# Write out the scaling map.
 		scale_alm = hp.almxfl(flm,scale_har*norm_factor*scale_bl)
@@ -312,8 +311,8 @@ def s2dw_wavelet_tranform(input_map,output_maps_prefix,band_lim,scale_int,
 		# Write out the wavelet maps.
 		for j in range(j_min,j_max+1):
 			# Get the ratio of the bl for this wavelet band
-			wav_bl = (hp.gauss_beam(target_fwhm[j-j_min+1],lmax=band_lim-1)/
-				hp.gauss_beam(input_fwhm,lmax=band_lim-1))
+			wav_bl = (hp.gauss_beam(target_fwhm[j-j_min+1]*a2r,lmax=band_lim-1)/
+				hp.gauss_beam(input_fwhm*a2r,lmax=band_lim-1))
 			wav_alm = hp.almxfl(flm,wav_har[j*band_lim:(j+1)*band_lim]*
 				norm_factor*wav_bl)
 			# The nside will be set to half the max ell (rounded up to the
@@ -337,11 +336,11 @@ def s2dw_wavelet_inverse_transform(wavelet_dict,output_fwhm,n_quads=1000):
 		wavelet_dict (dict): A dictionairy with the wavelet parameters
 			used in the transform and the path to the wavelet map
 			fits files.
+		output_fwhm (float): Rhe desired fwhm of the output
+			map. Note that if this is a higher fwhm than is supported by
+			the data this will create numerical artifacts. Units of arcmin.
 		n_quads (int): Using the trapezoid rule, the number of
 			bins to consider for integration
-		output_fwhm (float): In radians, the desired fwhm of the output
-			map. Note that if this is a higher fwhm than is supported by
-			the data this will create numerical artifacts. Units of radians.
 
 	Returns:
 		np.array: The healpix map resulting from the inverse wavelet
@@ -404,23 +403,21 @@ def s2dw_wavelet_inverse_transform(wavelet_dict,output_fwhm,n_quads=1000):
 
 	# Correct for the beam
 	target_fwhm = wavelet_dict['target_fwhm']
-	scale_bl = (hp.gauss_beam(output_fwhm,lmax=band_lim-1)/
-		hp.gauss_beam(target_fwhm[0],lmax=band_lim-1))
+	scale_bl = (hp.gauss_beam(output_fwhm*a2r,lmax=band_lim-1)/
+		hp.gauss_beam(target_fwhm[0]*a2r,lmax=band_lim-1))
 
 	# First add the scaling function
 	flm = hp.almxfl(scale_alm,scale_har*norm_factor*scale_bl)
 
 	# Then add the wavelet maps
 	for j in range(j_min,j_max+1):
-		wav_bl = (hp.gauss_beam(output_fwhm,lmax=band_lim-1)/
-			hp.gauss_beam(target_fwhm[j-j_min+1],lmax=band_lim-1))
+		wav_bl = (hp.gauss_beam(output_fwhm*a2r,lmax=band_lim-1)/
+			hp.gauss_beam(target_fwhm[j-j_min+1]*a2r,lmax=band_lim-1))
 		flm += hp.almxfl(
 			wav_alm[final_alm_size*j:final_alm_size*(j+1)],
 			wav_har[j*band_lim:(j+1)*band_lim]*norm_factor*wav_bl)
 
-	f_map = hp.alm2map(flm,wavelet_dict['original_nside'])
-
-	return f_map
+	return hp.alm2map(flm,wavelet_dict['original_nside'])
 
 
 def multifrequency_wavelet_maps(input_maps_dict,output_maps_prefix,
@@ -433,7 +430,7 @@ def multifrequency_wavelet_maps(input_maps_dict,output_maps_prefix,
 
 	Parameters:
 		input_maps_dict (dict): A dictionary that maps frequencies to
-			band limits, fwhm, nside, and input map path. Units of radians.
+			band limits, fwhm, nside, and input map path. Units of arcmin.
 		output_maps_prefix (str): The prefix that the output wavelet maps
 			will be written to.
 		analysis_type (string): A string specifying what type of analysis
@@ -459,10 +456,13 @@ def multifrequency_wavelet_maps(input_maps_dict,output_maps_prefix,
 	freq_list = np.array(list(input_maps_dict.keys()))
 	fwhm_list = np.array(list(map(lambda x: input_maps_dict[x]['fwhm'],
 		input_maps_dict)))
+	band_lim_list = np.array(list(map(lambda x: input_maps_dict[x]['band_lim'],
+		input_maps_dict)))
 	nside_list = np.array(list(map(lambda x: input_maps_dict[x]['nside'],
 		input_maps_dict)))
 	nside_list = nside_list[np.argsort(fwhm_list)[::-1]]
 	freq_list = freq_list[np.argsort(fwhm_list)[::-1]]
+	band_lim_list = band_lim_list[np.argsort(fwhm_list)[::-1]]
 
 	# Get the maximum wavelet scale for each map
 	j_max_list = np.array(list(map(lambda x: calc_j_max(
@@ -475,8 +475,10 @@ def multifrequency_wavelet_maps(input_maps_dict,output_maps_prefix,
 
 	# The wavelet analysis maps we will populated. Save the information
 	# in the input_maps_dict for later reconstruction.
-	wav_analysis_maps = {'input_maps_dict':input_maps_dict,'analysis_type':
-		analysis_type}
+	wav_analysis_maps = {'input_maps_dict':input_maps_dict,
+		'analysis_type':analysis_type,'scale_int':scale_int,'j_min':j_min,
+		'j_max':np.max(j_max_list),'band_lim':np.max(band_lim_list),
+		'target_fwhm':target_fwhm,'output_nside':np.max(nside_list)}
 
 	# In the case of gmca, we want to group the wavelet scales such that
 	# the number of frequencies is constant. Therefore, the minimum and
@@ -549,17 +551,18 @@ def multifrequency_wavelet_maps(input_maps_dict,output_maps_prefix,
 						freq_wav_dict['wav_%d_map'%(j)]['path'],nest=True,
 						verbose=False,dtype=np.float64),nside,
 						order_in='NESTED',order_out='NESTED'))
+				# Update the position in the array
 				n_pix += dn
 
 	elif analysis_type == 'hgmca':
-		return
+		raise NotImplementedError('HGMCA is not yet implemented.')
 	else:
 		raise ValueError('Analysis type %s not supported'%(analysis_type))
 
 	return wav_analysis_maps
 
 
-def wavelet_maps_to_real(wav_analysis_maps,nside):
+def wavelet_maps_to_real(wav_analysis_maps,output_maps_prefix,n_quads=1000):
 	"""Take a wav_analysis_map dictionary correponding to a single
 	frequency and the corresponding healpix map.
 
@@ -568,8 +571,63 @@ def wavelet_maps_to_real(wav_analysis_maps,nside):
 			about the wavelet functions used for analysis, the original
 			nside of the input map, and the wavelet maps that need
 			to be transformed back to the original healpix space.
+		output_maps_prefix (str): The prefix that the intermediary wavelet maps
+			will be written to.
 
 	Returns:
 		(np.array): The reconstructed healpix map (in ring ordering).
 	"""
-	return
+	# Make the wavelet dict we'll feed into the reconstruction script.
+	target_fwhm = wav_analysis_maps['target_fwhm']
+	scale_int = wav_analysis_maps['scale_int']
+	j_min = wav_analysis_maps['j_min']
+	j_max = wav_analysis_maps['j_max']
+	output_nside = wav_analysis_maps['output_nside']
+	wavelet_dict = {'scale_int':scale_int,
+		'band_lim':wav_analysis_maps['band_lim'],'j_max':j_max,'j_min':j_min,
+		'original_nside':output_nside,'target_fwhm':target_fwhm}
+	analysis_type = wav_analysis_maps['analysis_type']
+
+	# Now we need to pull the wavelet coefficients from the analysis grouping.
+	# This will depend on the type of analysis that was done.
+	if analysis_type == 'gmca':
+		# Start by grabbing the scale coefficients
+		scale_nside = get_max_nside(scale_int,j_min,output_nside)
+		n_pix = 0
+		scale_group = 0
+		dn = hp.nside2npix(scale_nside)
+		scale_path = output_maps_prefix+'_scaling.fits'
+		hp.write_map(scale_path,
+			wav_analysis_maps[str(scale_group)][n_pix:n_pix+dn],
+			dtype=np.float64,overwrite=True,nest=True)
+		wavelet_dict.update({'scale_map':{'path':scale_path,
+			'nside':scale_nside}})
+
+		# Update our position in the array
+		n_pix += dn
+
+		# Now iterate through the remaining scales
+		for j in range(j_min,j_max+1):
+			wav_nside = get_max_nside(scale_int,j+1,output_nside)
+			dn = hp.nside2npix(wav_nside)
+			if n_pix+dn > len(wav_analysis_maps[str(scale_group)]):
+				scale_group += 1
+				n_pix = 0
+			wav_path = output_maps_prefix+'_wav_%d.fits'%(j)
+			hp.write_map(wav_path,
+				wav_analysis_maps[str(scale_group)][n_pix:n_pix+dn],
+				dtype=np.float64,overwrite=True,nest=True)
+			wavelet_dict.update({'wav_%d_map'%(j):{'path':wav_path,
+				'nside':wav_nside}})
+			# Update the position in the array
+			n_pix += dn
+
+	elif analysis_type == 'hgmca':
+		raise NotImplementedError('HGMCA is not yet implemented.')
+	else:
+		raise ValueError('Analysis type %s not supported'%(analysis_type))
+
+	print('target_fwhm',target_fwhm)
+
+	return s2dw_wavelet_inverse_transform(wavelet_dict,np.min(target_fwhm),
+		n_quads=n_quads)

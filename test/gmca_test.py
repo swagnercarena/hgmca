@@ -4,6 +4,7 @@ import numpy as np
 import unittest
 import warnings
 
+
 class GmcaTests(unittest.TestCase):
 	# A set of tests to verify that the basic functionality of gmca is working
 	# as expected.
@@ -34,7 +35,7 @@ class GmcaTests(unittest.TestCase):
 			for i in range(n_sources):
 				gmca.update_S(S,A,A_R,R_i,A_i,lam_s,i)
 
-			# Make sure that all the sources are identical and that they have 
+			# Make sure that all the sources are identical and that they have
 			# the correct value.
 			self.assertAlmostEqual(np.max(np.std(S,axis=0)),0)
 			if lam_s < np.sqrt(n_freqs):
@@ -54,7 +55,7 @@ class GmcaTests(unittest.TestCase):
 				S_check[np.abs(S_check)<lam_s] = 0
 				S_check -= lam_s*np.sign(S_check)
 				self.assertAlmostEqual(np.max(np.abs(S[i]-S_check)),0)
-		
+
 	def test_update_A(self):
 		warnings.filterwarnings("ignore")
 
@@ -150,7 +151,7 @@ class GmcaTests(unittest.TestCase):
 		n_sources = 5
 		lam_p = [0.0]*5
 
-		# Generate ground truth A and S 
+		# Generate ground truth A and S
 		A_org = np.random.normal(size=(freq_dim,n_sources))
 		S_org = np.random.normal(size=(n_sources,pix_dim))
 		X = np.dot(A_org,S_org)
@@ -161,7 +162,7 @@ class GmcaTests(unittest.TestCase):
 		S = np.ones(S_org.shape)
 
 		# Run GMCA
-		gmca.gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
+		gmca.gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p,
 			ret_min_rmse=True)
 
 		# Check that GMCA returns the minimum RMSE solution
@@ -172,7 +173,7 @@ class GmcaTests(unittest.TestCase):
 		S = np.ones(S_org.shape)
 
 		# Re-run GMCA without ret_min_rmse
-		gmca.gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
+		gmca.gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p,
 			ret_min_rmse=False)
 
 		# Check that GMCA does not return the min_rmse solution
@@ -189,7 +190,7 @@ class GmcaTests(unittest.TestCase):
 		n_sources = 5
 		lam_p = [0.0]*5
 
-		# Generate ground truth A and S 
+		# Generate ground truth A and S
 		A_org = np.random.normal(size=(freq_dim,n_sources))
 		S_org = np.random.normal(size=(n_sources,pix_dim))
 		X = np.dot(A_org,S_org)
@@ -200,7 +201,7 @@ class GmcaTests(unittest.TestCase):
 		S = np.ones(S_org.shape)
 
 		# Run GMCA
-		gmca.gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
+		gmca.gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p,
 			ret_min_rmse=False, min_rmse_rate=n_iterations)
 
 		# Check that GMCA returns the minimum RMSE solution
@@ -212,7 +213,7 @@ class GmcaTests(unittest.TestCase):
 		S = np.ones(S_org.shape)
 
 		# Re-run GMCA without ret_min_rmse
-		gmca.gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
+		gmca.gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p,
 			ret_min_rmse=False, min_rmse_rate=n_iterations-1)
 
 		# Check that GMCA does not return the min_rmse solution
@@ -231,7 +232,7 @@ class GmcaTests(unittest.TestCase):
 		lam_s = 1
 		lam_p = [0.0]*n_sources
 
-		# Generate ground truth A and S 
+		# Generate ground truth A and S
 		A_org = np.abs(np.random.normal(size=(freq_dim,n_sources)))
 		S_org = np.random.normal(loc=1000,size=(n_sources,pix_dim))
 		X = np.dot(A_org,S_org)
@@ -242,25 +243,25 @@ class GmcaTests(unittest.TestCase):
 		S = np.ones(S_org.shape)
 
 		# Run GMCA
-		gmca.gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
-			lam_s=lam_s, ret_min_rmse=False, min_rmse_rate=2*n_iterations, 
-			enforce_nn_A=False,seed = rseed)
+		gmca.gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p,
+			lam_s=lam_s, ret_min_rmse=False, min_rmse_rate=2*n_iterations,
+			enforce_nn_A=False,seed=rseed)
 
-		#save sparsity of S for later test
+		# Save sparsity of S for later test
 		sparsity_1 = np.sum(np.abs(S))
 		err1 = np.sum(np.abs(np.dot(A,S)-X))
 
 		# Continue GMCA
-		gmca.gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
-			lam_s=lam_s,ret_min_rmse=False, min_rmse_rate=2*n_iterations, 
-			enforce_nn_A=False,seed = rseed)
+		gmca.gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p,
+			lam_s=lam_s,ret_min_rmse=False, min_rmse_rate=2*n_iterations,
+			enforce_nn_A=False,seed=rseed)
 		err2 = np.sum(np.abs(np.dot(A,S)-X))
 
 		self.assertGreater(err1,err2)
 
 		gmca.gmca_numba(X, n_sources, 200, A, S, A_p, lam_p, lam_s=lam_s,
-			ret_min_rmse=False, min_rmse_rate=2*n_iterations, 
-			enforce_nn_A=False, seed = rseed)
+			ret_min_rmse=False, min_rmse_rate=2*n_iterations,
+			enforce_nn_A=False, seed=rseed)
 
 		self.assertLess(np.sum(np.abs(np.dot(A,S)-X)),1e-3)
 
@@ -270,11 +271,11 @@ class GmcaTests(unittest.TestCase):
 		A = np.ones(A_org.shape)
 		S = np.ones(S_org.shape)
 
-		gmca.gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
-			lam_s=lam_s, ret_min_rmse=False, min_rmse_rate=2*n_iterations, 
-			enforce_nn_A=False, seed = rseed)
+		gmca.gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p,
+			lam_s=lam_s, ret_min_rmse=False, min_rmse_rate=2*n_iterations,
+			enforce_nn_A=False, seed=rseed)
 
-		#Save closeness to prior for later test
+		# Save closeness to prior for later test
 		A_p_val = np.sum(np.abs(A-A_p))
 
 		self.assertLess(np.sum(np.abs(S)), sparsity_1)
@@ -284,9 +285,9 @@ class GmcaTests(unittest.TestCase):
 		S = np.ones(S_org.shape)
 		lam_p = [100.0]*n_sources
 
-		gmca.gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p, 
-			lam_s=lam_s, ret_min_rmse=False, min_rmse_rate=2*n_iterations, 
-			enforce_nn_A=False, seed = rseed)
+		gmca.gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p,
+			lam_s=lam_s, ret_min_rmse=False, min_rmse_rate=2*n_iterations,
+			enforce_nn_A=False, seed=rseed)
 
 		self.assertLess(np.sum(np.abs(A-A_p)),A_p_val)
 
@@ -300,7 +301,7 @@ class GmcaTests(unittest.TestCase):
 		n_sources = 5
 		lam_p = [0.0]*5
 
-		# Generate ground truth A and S 
+		# Generate ground truth A and S
 		A_org = np.abs(np.random.normal(size=(freq_dim,n_sources)))
 		S_org = np.random.normal(loc=1000,size=(n_sources,pix_dim))
 		X = np.dot(A_org,S_org)
@@ -315,13 +316,13 @@ class GmcaTests(unittest.TestCase):
 		S3 = np.ones(S_org.shape)
 
 		# Run GMCA with different seeds.
-		gmca.gmca_numba(X, n_sources, n_iterations, A1, S1, A_p, lam_p, 
+		gmca.gmca_numba(X, n_sources, n_iterations, A1, S1, A_p, lam_p,
 			ret_min_rmse=False, min_rmse_rate=n_iterations, enforce_nn_A=False,
 			seed=1)
-		gmca.gmca_numba(X, n_sources, n_iterations, A2, S2, A_p, lam_p, 
+		gmca.gmca_numba(X, n_sources, n_iterations, A2, S2, A_p, lam_p,
 			ret_min_rmse=False, min_rmse_rate=n_iterations, enforce_nn_A=False,
 			seed=1)
-		gmca.gmca_numba(X, n_sources, n_iterations, A3, S3, A_p, lam_p, 
+		gmca.gmca_numba(X, n_sources, n_iterations, A3, S3, A_p, lam_p,
 			ret_min_rmse=False, min_rmse_rate=n_iterations, enforce_nn_A=False,
 			seed=2)
 
@@ -335,7 +336,7 @@ class GmcaTests(unittest.TestCase):
 		self.assertGreater(np.mean(np.abs(S1-S3)),1e-4)
 
 	def test_wrapper(self):
-		# Test that the wrapper returns the same results as the numba 
+		# Test that the wrapper returns the same results as the numba
 		# implementation
 		freq_dim = 10
 		pix_dim = 100
@@ -365,15 +366,11 @@ class GmcaTests(unittest.TestCase):
 					for ret_min_rmse in ret_min_rmse_vals:
 						A_init = np.copy(A_numba)
 						S_init = np.copy(S_numba)
-						A,S = gmca.gmca(X, n_sources, n_iterations, A_init, 
-							S_init, A_p, lam_p, enforce_nn_A, lam_s, 
+						A,S = gmca.gmca(X, n_sources, n_iterations, A_init,
+							S_init, A_p, lam_p, enforce_nn_A, lam_s,
 							ret_min_rmse,min_rmse_rate, seed=2)
-						gmca.gmca_numba(X, n_sources, n_iterations, A_numba, 
-							S_numba, A_p, lam_p, enforce_nn_A, lam_s, 
+						gmca.gmca_numba(X, n_sources, n_iterations, A_numba,
+							S_numba, A_p, lam_p, enforce_nn_A, lam_s,
 							ret_min_rmse, min_rmse_rate, seed=2)
-						self.assertAlmostEqual(np.max(np.abs(A_numba-A)),
-							0)
-						self.assertAlmostEqual(np.max(np.abs(S_numba-S)),
-							0)
-
-
+						self.assertAlmostEqual(np.max(np.abs(A_numba-A)),0)
+						self.assertAlmostEqual(np.max(np.abs(S_numba-S)),0)

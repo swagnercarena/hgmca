@@ -8,9 +8,6 @@ cache:
     pip: true
 
 before_install:
-  - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/travis/build/swagnercarena/hgmca/s2letbin
-  - sudo apt-get install gfortran
-  - unzip s2letbin_nersc.zip
   - git clone https://github.com/healpy/healpy-data.git
   - pip install coverage==4.5.4
   - pip install coveralls
