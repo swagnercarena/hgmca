@@ -5,7 +5,7 @@ import warnings
 import os
 
 
-class GmcaTests(unittest.TestCase):
+class GMCATests(unittest.TestCase):
 	# A set of tests to verify that the basic functionality of gmca is working
 	# as expected.
 
