@@ -5,7 +5,7 @@ from hgmca import helpers
 
 @numba.jit(nopython=True)
 def update_A(S,A,R_i,lam_p,A_p,enforce_nn_A,i):
-	"""Update a column of A according to the closed form solution.
+	"""Updates a column of A according to the closed form solution.
 
 	Parameters:
 		S (np.array): The current value of the matrix S.
@@ -16,7 +16,7 @@ def update_A(S,A,R_i,lam_p,A_p,enforce_nn_A,i):
 		lam_p ([float,...]): A n_sources long array of prior for each of
 			the columns of A_p. This allows for a different lam_p to be
 			applied to different columns of A_p.
-		A_p (np.array): A matrix prior for the CGMCA calculation.
+		A_p (np.array): A matrix prior for the gmca calculation.
 		enforce_nn_A (bool): a boolean that determines if the mixing matrix
 			will be forced to only have non-negative values.
 		i (int): The index of the source to be updated.
@@ -39,7 +39,7 @@ def update_A(S,A,R_i,lam_p,A_p,enforce_nn_A,i):
 
 @numba.jit(nopython=True,cache=True)
 def update_S(S, A, A_R, R_i, A_i, lam_s, i):
-	"""Update a row of S according to the closed form solution.
+	"""Updates a row of S according to the closed form solution.
 
 	Parameters:
 		S (np.array): The current value of the matrix S. The row i will be
@@ -76,7 +76,7 @@ def update_S(S, A, A_R, R_i, A_i, lam_s, i):
 
 @numba.jit(nopython=True)
 def calculate_remainder(X,S,A,AS,R_i,i):
-	"""Calculate the Remainder term for a specific source.
+	"""Calculates the Remainder term for a specific source.
 
 	Parameters:
 		X (np.array): A numpy array with dimensions number_of_maps (or
@@ -107,7 +107,7 @@ def calculate_remainder(X,S,A,AS,R_i,i):
 @numba.jit(nopython=True)
 def gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p,
 	enforce_nn_A=True, lam_s=1, ret_min_rmse=True, min_rmse_rate=0, seed=0):
-	""" Run a numba implementation of the base gmca algorithm on X using lasso
+	"""Runs a numba implementation of the base gmca algorithm on X using lasso
 	shooting to solve for the closed form of the L1 sparsity term.
 
 	Parameters:
@@ -122,7 +122,7 @@ def gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p,
 			overwritten.
 		S (np.array): an initial value for the matrix S. Will be
 			overwritten.
-		A_p (np.array): A matrix prior for the CGMCA calculation.
+		A_p (np.array): A matrix prior for the gmca calculation.
 		lam_p (np.array): A n_sources long array of prior for each of
 			the columns of A_p. This allows for a different lam_p to be
 			applied to different columns of A_p.
@@ -178,7 +178,7 @@ def gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p,
 def gmca(X, n_sources, n_iterations, A_init=None, S_init=None,A_p=None,
 	lam_p=None, enforce_nn_A=True, lam_s=1, ret_min_rmse=True,
 	min_rmse_rate=0, seed=0):
-	"""Run the base gmca algorithm on X.
+	"""Runs the base gmca algorithm on X.
 
 	Parameters:
 		X (np.array): A numpy array with dimensions number_of_maps (or
@@ -192,7 +192,7 @@ def gmca(X, n_sources, n_iterations, A_init=None, S_init=None,A_p=None,
 			dimensions (X.shape[0],n_sources). If set to None
 		S_init (np.array): An initial value for the source matrix with
 			dimensions (n_sources,X.shape[1]).
-		A_p (np.array): A matrix prior for the CGMCA calculation.
+		A_p (np.array): A matrix prior for the gmca calculation.
 		lam_p ([float,...]): A n_sources long array of prior for each of
 			the columns of A_p. This allows for a different lam_p to be
 			applied to different columns of A_p.
@@ -206,6 +206,7 @@ def gmca(X, n_sources, n_iterations, A_init=None, S_init=None,A_p=None,
 		min_rmse_rate (int): How often the source matrix will be set to the
 			minimum rmse solution. 0 will never return min_rmse within the
 			gmca optimization.
+		seed (int): An integer to seed the random number generator.
 
 	Returns:
 		(np.array,np.array): Returns the mixing matrix A and the
@@ -215,17 +216,17 @@ def gmca(X, n_sources, n_iterations, A_init=None, S_init=None,A_p=None,
 		A and S must be passed in as contiguous arrays. This can be done
 		with np.ascontiguousarray.
 	"""
-	# First deal with the case where no lam_p or A_p is passed in.
+	# Deal with the case where no lam_p or A_p is passed in.
 	if A_p is None or lam_p is None:
-		A_p = np.zeros(A_init.shape)
+		A_p = np.zeros((len(X),n_sources))
 		lam_p = np.zeros(n_sources)
 
 	# Set up A and S.
 	if A_init is not None:
-		A = A_init
+		A = np.copy(A_init)
 	else:
 		# Initialize A to the prior matrix A_p.
-		A = A_p
+		A = np.copy(A_p)
 
 		# Find which sources have no prior.
 		non_priors = np.where(np.array(lam_p) == 0)[0]
@@ -260,3 +261,84 @@ def gmca(X, n_sources, n_iterations, A_init=None, S_init=None,A_p=None,
 
 	# Return the mixing matrix and the source.
 	return A,S
+
+
+def mgmca(wav_analysis_maps, max_n_sources, n_iterations, A_init=None,
+	A_p=None, lam_p=None, enforce_nn_A=True, lam_s=1,ret_min_rmse=True,
+	min_rmse_rate=0,seed=0):
+	"""Runs multiscale gmca on a dictionary of input wav_analysis_maps.
+
+	Parameters:
+		wav_analysis_maps (dict): A dictionary containing the wavelet maps that
+			we will run mgmca on.
+		max_n_sources (int): The maximum number of sources to consider at each
+			wavelet scale in the analysis. The true maximum will be capped by the
+			number of frequencies available at that scale.
+		n_iterations (int): The number of iterations of coordinate descent to
+			conduct.
+		A_init (np.array): An initial value for the mixing matrix with
+			dimensions (X.shape[0],n_sources). If set to None
+		A_p (np.array): A matrix prior for the gmca calculation.
+		lam_p ([float,...]): A n_sources long array of prior for each of
+			the columns of A_p. This allows for a different lam_p to be
+			applied to different columns of A_p.
+		enforce_nn_A (bool): a boolean that determines if the mixing matrix
+			will be forced to only have non-negative values.
+		lam_s (float): The lambda parameter for the sparsity l1 norm.
+		ret_min_rmse (bool): A boolean parameter that decides if the minimum
+			rmse error solution for S will be returned. This will give best
+			CMB reconstruction but will not return the minimum of the loss
+			function.
+		min_rmse_rate (int): How often the source matrix will be set to the
+			minimum rmse solution. 0 will never return min_rmse within the
+			gmca optimization.
+		seed (int): An integer to seed the random number generator.
+
+	Returns:
+		(dict): Returns the mixing matrix A and the source matrix S for each
+		wavelet analysis group.
+
+	Notes:
+		A and S must be passed in as contiguous arrays. This can be done
+		with np.ascontiguousarray.
+	"""
+	if wav_analysis_maps['analysis_type'] != 'mgmca':
+		raise ValueError('These wavelet functions were not generated using the'+
+			'gmca analysis type')
+
+	# Copy over the information we need from the wav_analysis_maps dict.
+	mgmca_analysis_maps = {'input_maps_dict':wav_analysis_maps['input_maps_dict'],
+		'analysis_type':'mgmca','scale_int':wav_analysis_maps['scale_int'],
+		'j_min':wav_analysis_maps['j_min'],'j_max':wav_analysis_maps['j_max'],
+		'band_lim':wav_analysis_maps['band_lim'],
+		'target_fwhm':wav_analysis_maps['target_fwhm'],
+		'output_nside':wav_analysis_maps['output_nside']}
+
+	# Go through the analysis groupings and run gmca on each.
+	i = 0
+	while str(i) in wav_analysis_maps:
+		n_freqs = len(wav_analysis_maps[(str(i))])
+		n_sources = min(max_n_sources,n_freqs)
+
+		# We need to trim the mixing matrix initializations and priors to only
+		# the frequencies and sources supported by this scale.
+		if A_init is None:
+			A_init_group = None
+		else:
+			A_init_group = A_init[:-n_freqs,:n_sources]
+		if A_p is None:
+			A_p_group = None
+			lam_p_group = None
+		else:
+			A_p_group = A_p[:-n_freqs,:n_sources]
+			lam_p_group = lam_p[:n_sources]
+
+		A,S = gmca(wav_analysis_maps[str(i)], n_sources, n_iterations,
+			A_init=A_init_group,A_p=A_p_group,lam_p=lam_p_group,
+			enforce_nn_A=enforce_nn_A,lam_s=lam_s,ret_min_rmse=ret_min_rmse,
+			min_rmse_rate=min_rmse_rate,seed=seed)
+
+		mgmca_analysis_maps[str(i)] = {'A':A,'S':S}
+		i += 1
+
+	return mgmca_analysis_maps

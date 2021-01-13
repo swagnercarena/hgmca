@@ -1,6 +1,7 @@
 import numpy as np
 import numba
 
+
 @numba.jit(nopython=True)
 def A_norm(A):
 	""" A quick helper function that takes a mixing matrix A and normalizes each

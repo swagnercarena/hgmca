@@ -1,4 +1,4 @@
-from hgmca.helpers import A_norm
+from hgmca import helpers
 import numpy as np
 import unittest
 
@@ -15,7 +15,6 @@ class HelpersTests(unittest.TestCase):
 
 		for _ in range(n_A_test):
 			A = np.random.randn(n_freqs*n_sources).reshape((n_freqs,n_sources))
-			A_norm(A)
+			helpers.A_norm(A)
 			for i in range(n_sources):
 				self.assertAlmostEqual(np.sum(np.square(A[:,i])),1)
-

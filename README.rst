@@ -30,7 +30,7 @@ Installation
 
 2.	For ease of use and installation, HGMCA includes an implementation of the `s2let library <http://astro-informatics.github.io/s2let/scratch_install.html>`_ in python. To improve the fidelity of the alm transform, healpy requires us to download some weights. Go into the hgmca directory and run the git clone command.
 
- .. code-block:: bash
+.. code-block:: bash
 
 	$ cd <HGMCA_path>
 	$ git clone https://github.com/healpy/healpy-data.git
