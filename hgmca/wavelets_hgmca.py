@@ -207,7 +207,8 @@ class WaveletsHGMCA(wavelets_base.WaveletsBase):
 		wav_analysis_maps = {'input_maps_dict':input_maps_dict,
 			'analysis_type':'hgmca','scale_int':scale_int,'j_min':j_min,
 			'j_max':np.max(j_max_list),'band_lim':np.max(band_lim_list),
-			'target_fwhm':target_fwhm,'output_nside':np.max(nside_list)}
+			'target_fwhm':target_fwhm,'output_nside':np.max(nside_list),
+			'n_freqs':len(freq_list)}
 
 		# Get the largest n_side that will be considered and therefore the
 		# actual largest level that will be used (this will be less than

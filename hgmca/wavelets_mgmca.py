@@ -64,7 +64,8 @@ class WaveletsMGMCA(wavelets_base.WaveletsBase):
 		wav_analysis_maps = {'input_maps_dict':input_maps_dict,
 			'analysis_type':'mgmca','scale_int':scale_int,'j_min':j_min,
 			'j_max':np.max(j_max_list),'band_lim':np.max(band_lim_list),
-			'target_fwhm':target_fwhm,'output_nside':np.max(nside_list)}
+			'target_fwhm':target_fwhm,'output_nside':np.max(nside_list),
+			'n_freqs':len(freq_list)}
 
 		# In the case of mgmca, we want to group the wavelet scales such that
 		# the number of frequencies is constant. Therefore, the minimum and

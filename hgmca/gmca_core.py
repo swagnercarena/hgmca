@@ -285,7 +285,7 @@ def mgmca(wav_analysis_maps,max_n_sources,n_iterations,A_init=None,
 
 	Parameters:
 		wav_analysis_maps (dict): A dictionary containing the wavelet maps that
-			we will run mgmca on.
+			we will run MGMCA on.
 		max_n_sources (int): The maximum number of sources to consider at each
 			wavelet scale in the analysis. The true maximum will be capped by the
 			number of frequencies available at that scale.
@@ -312,14 +312,10 @@ def mgmca(wav_analysis_maps,max_n_sources,n_iterations,A_init=None,
 	Returns:
 		(dict): Returns the mixing matrix A and the source matrix S for each
 		wavelet analysis group.
-
-	Notes:
-		A and S must be passed in as contiguous arrays. This can be done
-		with np.ascontiguousarray.
 	"""
 	if wav_analysis_maps['analysis_type'] != 'mgmca':
 		raise ValueError('These wavelet functions were not generated using the'+
-			'gmca analysis type')
+			'mgmca analysis type')
 
 	# Copy over the information we need from the wav_analysis_maps dict.
 	mgmca_analysis_maps = {'input_maps_dict':wav_analysis_maps['input_maps_dict'],

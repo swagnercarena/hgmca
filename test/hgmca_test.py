@@ -1,4 +1,4 @@
-from hgmca import hgmca_core, wavelets_hgmca, helpers
+from hgmca import hgmca_core, wavelets_hgmca, helpers, wavelets_base
 import numpy as np
 import unittest
 import os
@@ -186,3 +186,99 @@ class HGMCATests(unittest.TestCase):
 				np.testing.assert_almost_equal(X_level[level][patch],
 					np.dot(A_hier_list[level][patch],S_level[level][patch]),
 					decimal=3)
+
+		# Repeat the same but with strong priors. Start with the global prior
+		lam_global = np.ones(n_sources)*1e12
+		n_epochs = 2
+		n_iterations = 5
+		A_hier_list = hgmca_core.allocate_A_hier(m_level,(n_freqs,n_sources))
+		S_level = hgmca_core.allocate_S_level(m_level,X_level,n_sources)
+		hgmca_core.hgmca_epoch_numba(X_level,A_hier_list,lam_hier,A_global,
+			lam_global,S_level,n_epochs,m_level,n_iterations,lam_s,seed,
+			enforce_nn_A,min_rmse_rate)
+		for level in range(3):
+			for patch in range(wavelets_hgmca.level_to_npatches(level)):
+				np.testing.assert_almost_equal(A_hier_list[level][patch],
+					A_global,decimal=4)
+
+		# The same test, but now for the hierarchy
+		lam_hier = np.ones(n_sources)*1e12
+		lam_global = np.zeros(n_sources)
+		n_epochs = 2
+		n_iterations = 5
+		A_init = np.random.rand(n_freqs*n_sources).reshape((n_freqs,n_sources))
+		A_hier_list = hgmca_core.allocate_A_hier(m_level,(n_freqs,n_sources),
+			A_init=A_init)
+		S_level = hgmca_core.allocate_S_level(m_level,X_level,n_sources)
+		for level in range(3):
+			for patch in range(wavelets_hgmca.level_to_npatches(level)):
+				np.testing.assert_almost_equal(A_hier_list[level][patch],
+					A_init,decimal=4)
+
+	def test_hgmca_opt(self):
+		# Generate a quick approximation using the hgmca_opt code and
+		# make sure it gives the same results as the core hgmca code.
+		input_map_path = self.root_path + 'gmca_test_full_sim_90_GHZ.fits'
+		input_maps_dict = {
+			'30':{'band_lim':64,'fwhm':33,'path':input_map_path,
+				'nside':128},
+			'44':{'band_lim':64,'fwhm':24,'path':input_map_path,
+				'nside':128},
+			'70':{'band_lim':64,'fwhm':14,'path':input_map_path,
+				'nside':128},
+			'100':{'band_lim':256,'fwhm':10,'path':input_map_path,
+				'nside':128},
+			'143':{'band_lim':256,'fwhm':7.1,'path':input_map_path,
+				'nside':128},
+			'217':{'band_lim':256,'fwhm':5.5,'path':input_map_path,
+				'nside':128}}
+		output_maps_prefix = self.root_path + 'hgmca_test'
+		scale_int = 2
+		j_min = 1
+		n_freqs = len(input_maps_dict)
+		wav_analysis_maps = self.wav_class.multifrequency_wavelet_maps(
+			input_maps_dict,output_maps_prefix,scale_int,j_min)
+
+		# Run hgmca on the wavelet analysis maps
+		n_sources = 5
+		n_epochs = 5
+		n_iterations = 2
+		lam_s = 1e-3
+		lam_hier = np.random.rand(n_sources)
+		lam_global = np.random.rand(n_sources)
+		A_global = np.random.rand(n_freqs*n_sources).reshape(
+			n_freqs,n_sources)
+		seed = 5
+		min_rmse_rate = 2
+		hgmca_dict = hgmca_core.hgmca_opt(wav_analysis_maps,n_sources,n_epochs,
+			lam_hier,lam_s,n_iterations,A_init=None,A_global=A_global,
+			lam_global=lam_global,seed=seed,enforce_nn_A=True,
+			min_rmse_rate=min_rmse_rate,verbose=True)
+
+		# Allocate what we need for the core code.
+		X_level = hgmca_core.convert_wav_to_X_level(wav_analysis_maps)
+		n_freqs = wav_analysis_maps['n_freqs']
+		A_shape = (n_freqs,n_sources)
+		A_hier_list = hgmca_core.allocate_A_hier(self.m_level,A_shape,
+			A_init=None)
+		S_level = hgmca_core.allocate_S_level(self.m_level,X_level,n_sources)
+		hgmca_core.hgmca_epoch_numba(X_level,A_hier_list,lam_hier,A_global,
+			lam_global,S_level,n_epochs,self.m_level,n_iterations,lam_s,seed,
+			True,min_rmse_rate)
+
+		for level in range(self.m_level+1):
+			for patch in range(wavelets_hgmca.level_to_npatches(level)):
+				np.testing.assert_almost_equal(A_hier_list[level][patch],
+					hgmca_dict[str(level)]['A'][patch])
+				if S_level[level].size == 0:
+					self.assertEqual(hgmca_dict[str(level)]['S'].size,0)
+				else:
+					np.testing.assert_almost_equal(S_level[level][patch],
+						hgmca_dict[str(level)]['S'][patch])
+
+		for freq in input_maps_dict.keys():
+			os.remove(output_maps_prefix+freq+'_scaling.fits')
+			j_max = wavelets_base.calc_j_max(input_maps_dict[freq]['band_lim'],
+				scale_int)
+			for j in range(j_min,j_max+1):
+				os.remove(output_maps_prefix+freq+'_wav_%d.fits'%(j))

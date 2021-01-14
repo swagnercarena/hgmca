@@ -455,7 +455,7 @@ class GMCATests(unittest.TestCase):
 				'nside':128},
 			'217':{'band_lim':256,'fwhm':5.5,'path':input_map_path,
 				'nside':128}}
-		output_maps_prefix = self.root_path + 's2dw_test'
+		output_maps_prefix = self.root_path + 'mgmca_test'
 		scale_int = 2
 		j_min = 1
 		lam_s=0

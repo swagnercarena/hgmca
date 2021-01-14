@@ -504,6 +504,7 @@ class TestMGMCAFunctions(unittest.TestCase):
 		self.assertEqual(wav_analysis_maps['scale_int'],scale_int)
 		self.assertEqual(wav_analysis_maps['j_min'],j_min)
 		self.assertEqual(wav_analysis_maps['j_max'],9)
+		self.assertEqual(wav_analysis_maps['n_freqs'],2)
 		self.assertListEqual(list(wav_analysis_maps['input_maps_dict'].keys()),
 			list(input_maps_dict.keys()))
 
@@ -748,6 +749,7 @@ class TestHGMCAFunctions(unittest.TestCase):
 		# Generate the wavelet maps using the python code
 		wav_analysis_maps = self.wav_class.multifrequency_wavelet_maps(
 			input_maps_dict,output_maps_prefix,scale_int,j_min)
+		self.assertEqual(wav_analysis_maps['n_freqs'],2)
 
 		# Now directly compare the values in the groupped array to the
 		# values of the original map.
