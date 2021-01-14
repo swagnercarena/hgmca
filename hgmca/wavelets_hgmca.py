@@ -4,6 +4,43 @@ import healpy as hp
 import numba
 
 
+@numba.njit()
+def nside_to_level(nside,m_level):
+	"""Maps from the nside to the maximum level of subdivision possible
+	on this map
+
+	Parameters:
+		nside (int): The nside of the healpix map
+		m_level (int): The maximum level that should be considered.
+
+	Returns
+		(int): The maximum level of subdivision.
+
+	Notes:
+		This can be modified to change the minimum number of pixels at
+		each level. This choice makes it so that the minimum number of
+		pixels is 256.
+	"""
+	# Return the largest level that gives at minimum 256 pixels
+	return int(min(max(np.log2(nside)-3,0),m_level))
+
+
+@numba.njit()
+def level_to_npatches(level):
+	"""Maps from the level of analysis to the number of patches.
+
+	Parameters:
+		level (int): The level of analysis
+
+	Returns
+		(int): The number of patches at that level of analysis
+	"""
+	if level == 0:
+		return 1
+	else:
+		return int(12*4**(level-1))
+
+
 class WaveletsHGMCA(wavelets_base.WaveletsBase):
 	""" Class for conducting the wavlet transforms for the HGMCA algorithm.
 
@@ -17,43 +54,6 @@ class WaveletsHGMCA(wavelets_base.WaveletsBase):
 		super().__init__()
 
 		self.m_level = m_level
-
-	@staticmethod
-	@numba.njit()
-	def nside_to_level(nside,m_level):
-		"""Maps from the nside to the maximum level of subdivision possible
-		on this map
-
-		Parameters:
-			nside (int): The nside of the healpix map
-			m_level (int): The maximum level that should be considered.
-
-		Returns
-			(int): The maximum level of subdivision.
-
-		Notes:
-			This can be modified to change the minimum number of pixels at
-			each level. This choice makes it so that the minimum number of
-			pixels is 256.
-		"""
-		# Return the largest level that gives at minimum 256 pixels
-		return int(min(max(np.log2(nside)-3,0),m_level))
-
-	@staticmethod
-	@numba.njit()
-	def level_to_npatches(level):
-		"""Maps from the level of analysis to the number of patches.
-
-		Parameters:
-			level (int): The level of analysis
-
-		Returns
-			(int): The number of patches at that level of analysis
-		"""
-		if level == 0:
-			return 1
-		else:
-			return int(12*4**(level-1))
 
 	@staticmethod
 	def get_analysis_level(scale_int,j_min,j_max,m_level,max_nside):
@@ -76,11 +76,11 @@ class WaveletsHGMCA(wavelets_base.WaveletsBase):
 		# with the scale coefficients.
 		wav_level = np.zeros(2+j_max-j_min)
 		scale_nside = wavelets_base.get_max_nside(scale_int,j_min,max_nside)
-		wav_level[0] = WaveletsHGMCA.nside_to_level(scale_nside,m_level)
+		wav_level[0] = nside_to_level(scale_nside,m_level)
 		# Now all the remaining wavelet coefficients
 		for ji, j in enumerate(range(j_min,j_max+1)):
 			wav_nside = wavelets_base.get_max_nside(scale_int,j+1,max_nside)
-			wav_level[ji+1] = WaveletsHGMCA.nside_to_level(wav_nside,m_level)
+			wav_level[ji+1] = nside_to_level(wav_nside,m_level)
 
 		return wav_level
 
@@ -135,7 +135,7 @@ class WaveletsHGMCA(wavelets_base.WaveletsBase):
 						scale_int,j+1,max_nside))
 
 			# Get the number of patches for a given level.
-			n_patches = self.level_to_npatches(level)
+			n_patches = level_to_npatches(level)
 			# Initialize to nans so that scales were data at some frequencies
 			# is missing will be easy to detect.
 			wav_analysis_maps[str(level)] = np.zeros((n_patches,n_freqs,
@@ -214,7 +214,7 @@ class WaveletsHGMCA(wavelets_base.WaveletsBase):
 		# or equal to the maximum level specified).
 		max_nside = wavelets_base.get_max_nside(scale_int,np.max(j_max_list)+1,
 			np.max(nside_list))
-		m_level = self.nside_to_level(max_nside,self.m_level)
+		m_level = nside_to_level(max_nside,self.m_level)
 		wav_analysis_maps['m_level'] = m_level
 
 		self.allocate_analysis_arrays(wav_analysis_maps,scale_int,j_min,
@@ -250,7 +250,7 @@ class WaveletsHGMCA(wavelets_base.WaveletsBase):
 				# Which scales belong at this level
 				level_j_ind = wav_j_ind[wav_level==level]
 				# Get the number of patches for a given level.
-				n_patches = self.level_to_npatches(level)
+				n_patches = level_to_npatches(level)
 
 				# Keep track of how many pixels into the level we've
 				# gone so far.
@@ -338,7 +338,7 @@ class WaveletsHGMCA(wavelets_base.WaveletsBase):
 			# Which scales belong at this level
 			level_j_ind = wav_j_ind[wav_level==level]
 			# Get the number of patches for a given level.
-			n_patches = self.level_to_npatches(level)
+			n_patches = level_to_npatches(level)
 
 			# Keep track of how many pixels into the level we've
 			# gone so far.
@@ -368,7 +368,6 @@ class WaveletsHGMCA(wavelets_base.WaveletsBase):
 					wav_coeff[patch*n_pix_patch:(patch+1)*n_pix_patch] = (
 						wav_analysis_maps[str(level)][patch,
 						offset:offset+n_pix_patch])
-
 				offset += n_pix_patch
 
 				# Write the map and point the dictionary to the path

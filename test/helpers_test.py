@@ -18,3 +18,13 @@ class HelpersTests(unittest.TestCase):
 			helpers.A_norm(A)
 			for i in range(n_sources):
 				self.assertAlmostEqual(np.sum(np.square(A[:,i])),1)
+
+	def test_nan_to_num(self):
+		# Check that to nans remain
+		mat = np.ones((100,100))
+		for i in range(len(mat)):
+			mat[i,np.random.randint(0,mat.shape[1])] = np.nan
+
+		helpers.nan_to_num(mat)
+		self.assertEqual(np.sum(np.isnan(mat)),0)
+		self.assertEqual(np.sum(mat),9900)

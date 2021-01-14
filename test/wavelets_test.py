@@ -12,6 +12,7 @@ class TestBaseFunctions(unittest.TestCase):
 		# Remember, healpy expects radians but we use arcmins.
 		self.a2r = np.pi/180/60
 		self.wav_class = wavelets_base.WaveletsBase()
+		np.random.seed(5)
 
 	def test_k_sdw(self):
 		# Test that the modified Schwartz function is returning the
@@ -657,34 +658,34 @@ class TestHGMCAFunctions(unittest.TestCase):
 		# expect for a few examples values
 		nside = 8
 		m_level = 3
-		self.assertEqual(self.wav_class.nside_to_level(nside,m_level),0)
+		self.assertEqual(wavelets_hgmca.nside_to_level(nside,m_level),0)
 
 		nside=16
-		self.assertEqual(self.wav_class.nside_to_level(nside,m_level),1)
+		self.assertEqual(wavelets_hgmca.nside_to_level(nside,m_level),1)
 
 		nside=32
-		self.assertEqual(self.wav_class.nside_to_level(nside,m_level),2)
+		self.assertEqual(wavelets_hgmca.nside_to_level(nside,m_level),2)
 
 		nside=64
-		self.assertEqual(self.wav_class.nside_to_level(nside,m_level),3)
+		self.assertEqual(wavelets_hgmca.nside_to_level(nside,m_level),3)
 
 		nside=128
-		self.assertEqual(self.wav_class.nside_to_level(nside,m_level),3)
+		self.assertEqual(wavelets_hgmca.nside_to_level(nside,m_level),3)
 
 	def test_level_to_npatches(self):
 		# Manually test that a few different levels give the right number
 		# of patches
 		level = 0
-		self.assertEqual(self.wav_class.level_to_npatches(level),1)
+		self.assertEqual(wavelets_hgmca.level_to_npatches(level),1)
 
 		level = 1
-		self.assertEqual(self.wav_class.level_to_npatches(level),12)
+		self.assertEqual(wavelets_hgmca.level_to_npatches(level),12)
 
 		level = 2
-		self.assertEqual(self.wav_class.level_to_npatches(level),48)
+		self.assertEqual(wavelets_hgmca.level_to_npatches(level),48)
 
 		level = 3
-		self.assertEqual(self.wav_class.level_to_npatches(level),192)
+		self.assertEqual(wavelets_hgmca.level_to_npatches(level),192)
 
 	def test_get_analysis_level(self):
 		# Test that the right analysis level is selected for each wavelet
@@ -760,7 +761,7 @@ class TestHGMCAFunctions(unittest.TestCase):
 		# Go patch by patch, starting with the scaling coefficients
 		offset = 0
 		scale_nside = wavelets_base.get_max_nside(scale_int,j_min,max_nside)
-		n_patches = self.wav_class.level_to_npatches(2)
+		n_patches = wavelets_hgmca.level_to_npatches(2)
 		ppp = hp.nside2npix(scale_nside)//n_patches
 		scale_map = hp.read_map(wavelet_dict['scale_map']['path'],nest=True,
 			verbose=False)
@@ -773,7 +774,7 @@ class TestHGMCAFunctions(unittest.TestCase):
 		# Now repeat the calculation for the rest of the wavelet scales.
 		for j in range(j_min,6):
 			wav_nside = wavelets_base.get_max_nside(scale_int,j+1,max_nside)
-			n_patches = self.wav_class.level_to_npatches(2)
+			n_patches = wavelets_hgmca.level_to_npatches(2)
 			ppp = hp.nside2npix(wav_nside)//n_patches
 			wav_map = hp.read_map(wavelet_dict['wav_%d_map'%(j)]['path'],
 				nest=True,verbose=False)
@@ -786,7 +787,7 @@ class TestHGMCAFunctions(unittest.TestCase):
 		offset = 0
 		for j in range(6,j_max):
 			wav_nside = wavelets_base.get_max_nside(scale_int,j+1,max_nside)
-			n_patches = self.wav_class.level_to_npatches(3)
+			n_patches = wavelets_hgmca.level_to_npatches(3)
 			ppp = hp.nside2npix(wav_nside)//n_patches
 			wav_map = hp.ud_grade(hp.read_map(
 				wavelet_dict['wav_%d_map'%(j)]['path'],nest=True,
@@ -811,7 +812,7 @@ class TestHGMCAFunctions(unittest.TestCase):
 			target_fwhm=np.ones(10)*input_maps_dict['44']['fwhm'])
 		offset = 0
 		scale_nside = wavelets_base.get_max_nside(scale_int,j_min,max_nside)
-		n_patches = self.wav_class.level_to_npatches(2)
+		n_patches = wavelets_hgmca.level_to_npatches(2)
 		ppp = hp.nside2npix(scale_nside)//n_patches
 		scale_map = hp.read_map(wavelet_dict_256['scale_map']['path'],
 			nest=True,verbose=False)
@@ -824,7 +825,7 @@ class TestHGMCAFunctions(unittest.TestCase):
 		# Now repeat the calculation for the rest of the wavelet scales.
 		for j in range(j_min,6):
 			wav_nside = wavelets_base.get_max_nside(scale_int,j+1,max_nside)
-			n_patches = self.wav_class.level_to_npatches(2)
+			n_patches = wavelets_hgmca.level_to_npatches(2)
 			ppp = hp.nside2npix(wav_nside)//n_patches
 			wav_map = hp.read_map(wavelet_dict_256['wav_%d_map'%(j)]['path'],
 				nest=True,verbose=False)
@@ -837,7 +838,7 @@ class TestHGMCAFunctions(unittest.TestCase):
 		offset = 0
 		for j in range(6,j_max+1):
 			wav_nside = wavelets_base.get_max_nside(scale_int,j+1,max_nside)
-			n_patches = self.wav_class.level_to_npatches(3)
+			n_patches = wavelets_hgmca.level_to_npatches(3)
 			ppp = hp.nside2npix(wav_nside)//n_patches
 			wav_map = hp.ud_grade(hp.read_map(
 				wavelet_dict_256['wav_%d_map'%(j)]['path'],nest=True,

@@ -3,7 +3,7 @@ import numba
 from hgmca import helpers
 
 
-@numba.jit(nopython=True)
+@numba.njit
 def update_A(S,A,R_i,lam_p,A_p,enforce_nn_A,i):
 	"""Updates a column of A according to the closed form solution.
 
@@ -37,8 +37,8 @@ def update_A(S,A,R_i,lam_p,A_p,enforce_nn_A,i):
 		A[:,i] = A[:,i]/np.linalg.norm(A[:,i])
 
 
-@numba.jit(nopython=True,cache=True)
-def update_S(S, A, A_R, R_i, A_i, lam_s, i):
+@numba.njit
+def update_S(S,A,A_R,R_i,A_i,lam_s,i):
 	"""Updates a row of S according to the closed form solution.
 
 	Parameters:
@@ -74,7 +74,7 @@ def update_S(S, A, A_R, R_i, A_i, lam_s, i):
 	A_i *= 0
 
 
-@numba.jit(nopython=True)
+@numba.njit
 def calculate_remainder(X,S,A,AS,R_i,i):
 	"""Calculates the Remainder term for a specific source.
 
@@ -85,7 +85,7 @@ def calculate_remainder(X,S,A,AS,R_i,i):
 		S (np.array): The current value of the matrix S. The row i will be
 			updated.
 		A (np.array): The current value of the matrix A.
-		A_R (np.array): A pre-allocated array that will be used for the
+		AS (np.array): A pre-allocated array that will be used for the
 			remainder calculation. Must have the same shape as X.
 		R_i (np.array): The remainder of the data after removing the rest
 			of the sources.
@@ -103,10 +103,17 @@ def calculate_remainder(X,S,A,AS,R_i,i):
 	np.dot(A,S,out=AS)
 	R_i-=AS
 
+	# Nans in the data indicate that there is no information at the frequency.
+	# To have that work in our algorithm, we need to set the remainder to 0
+	# at those locations (therefore the sources and mixing matrix are
+	# not updated based on that entry).
+	# For loops okay in numba
+	helpers.nan_to_num(R_i)
 
-@numba.jit(nopython=True)
-def gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p,
-	enforce_nn_A=True, lam_s=1, ret_min_rmse=True, min_rmse_rate=0, seed=0):
+
+@numba.njit
+def gmca_numba(X,n_sources,n_iterations,A,S,A_p,lam_p,enforce_nn_A=True,
+	lam_s=1,ret_min_rmse=True,min_rmse_rate=0,seed=0):
 	"""Runs a numba implementation of the base gmca algorithm on X using lasso
 	shooting to solve for the closed form of the L1 sparsity term.
 
@@ -167,17 +174,25 @@ def gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p,
 			update_S(S,A,A_R,R_i,A_i,lam_s,i)
 
 		if min_rmse_rate and (iteration+1)%min_rmse_rate == 0:
-			np.dot(np.linalg.pinv(A),X,out=S)
+			# Take advantage of R_i to store a version of X without
+			# the nans
+			R_i *= 0
+			R_i += X
+			helpers.nan_to_num(R_i)
+			np.dot(np.linalg.pinv(A),R_i,out=S)
 
 	# Only in the context of HGMCA - where the output will be the input to a
 	# future GMCA call - should this be set to false.
 	if ret_min_rmse:
-		np.dot(np.linalg.pinv(A),X,out=S)
+		R_i *= 0
+		R_i += X
+		helpers.nan_to_num(R_i)
+		np.dot(np.linalg.pinv(A),R_i,out=S)
 
 
-def gmca(X, n_sources, n_iterations, A_init=None, S_init=None,A_p=None,
-	lam_p=None, enforce_nn_A=True, lam_s=1, ret_min_rmse=True,
-	min_rmse_rate=0, seed=0):
+def gmca(X, n_sources,n_iterations,A_init=None,S_init=None,A_p=None,
+	lam_p=None,enforce_nn_A=True,lam_s=1,ret_min_rmse=True,
+	min_rmse_rate=0,seed=0):
 	"""Runs the base gmca algorithm on X.
 
 	Parameters:
@@ -263,8 +278,8 @@ def gmca(X, n_sources, n_iterations, A_init=None, S_init=None,A_p=None,
 	return A,S
 
 
-def mgmca(wav_analysis_maps, max_n_sources, n_iterations, A_init=None,
-	A_p=None, lam_p=None, enforce_nn_A=True, lam_s=1,ret_min_rmse=True,
+def mgmca(wav_analysis_maps,max_n_sources,n_iterations,A_init=None,
+	A_p=None,lam_p=None,enforce_nn_A=True,lam_s=1,ret_min_rmse=True,
 	min_rmse_rate=0,seed=0):
 	"""Runs multiscale gmca on a dictionary of input wav_analysis_maps.
 
