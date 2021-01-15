@@ -450,6 +450,10 @@ class WaveletsBase():
 			j_min (int): The minimum wavelet scale to use in the decomposition
 			precomputed (float): If true, will grab paths to precomputed maps
 				based on the output_maps_prefix provided.
+			nest (bool): If true the input maps are in the nested
+				configuration.
+			n_quads (int): Using the trapezoid rule, the number of
+				bins to consider for integration
 
 		Returns:
 			(dict): A dictionary with one entry per level of analysis. Each
