@@ -64,7 +64,7 @@ def allocate_S_level(m_level,X_level,n_sources):
 		# Otherwise initialize an array of zeros.
 		npatches = wavelets_hgmca.level_to_npatches(level)
 		n_wavs = X_level[level].shape[2]
-		S_level.append(np.ones((npatches,n_sources,n_wavs)))
+		S_level.append(np.zeros((npatches,n_sources,n_wavs)))
 
 	return S_level
 
@@ -133,7 +133,8 @@ def get_A_prior(A_hier_list,level,patch,lam_hier):
 
 @numba.njit
 def hgmca_epoch_numba(X_level,A_hier_list,lam_hier,A_global,lam_global,S_level,
-	n_epochs,m_level,n_iterations,lam_s,seed,enforce_nn_A,min_rmse_rate):
+	n_epochs,m_level,n_iterations,lam_s,seed,enforce_nn_A,min_rmse_rate,
+	epoch_start=0):
 	""" Runs the epoch loop for a given level of hgmca using numba optimization.
 
 	For an in depth description of the algorithm see arxiv 1910.08077
@@ -143,9 +144,6 @@ def hgmca_epoch_numba(X_level,A_hier_list,lam_hier,A_global,lam_global,S_level,
 		the data for each level of analysis.
 		A_hier_list ([np.array]): A numba.typed.List of numpy arrays containing
 			the mixing matrix hierarchy for each level of analysis.
-		A_hier ([np.array,...]): A list of numpy matrices (one per level).
-			The arrays should have dimensions number of patches x number
-			of maps x number of sources.
 		lam_hier (np.array): A n_sources long array of the prior for each of
 			the columns of the mixing matrices in A_hier. This allows for a
 			source dependent prior.
@@ -167,6 +165,8 @@ def hgmca_epoch_numba(X_level,A_hier_list,lam_hier,A_global,lam_global,S_level,
 		min_rmse_rate (int): How often the source matrix will be set to the
 			minimum rmse solution. 0 will never return min_rmse within the
 			gmca optimization.
+		epoch_start (int): What epoch the code is starting at. Important
+			for min_rmse_rate.
 
 	Notes:
 		A_hier and S_level will be updated in place.
@@ -175,7 +175,7 @@ def hgmca_epoch_numba(X_level,A_hier_list,lam_hier,A_global,lam_global,S_level,
 	np.random.seed(seed)
 	# Now we iterate through our graphical model using our approximate closed
 	# form solution for the desired number of epochs.
-	for epoch in range(n_epochs):
+	for epoch in range(epoch_start,epoch_start+n_epochs):
 		# We want to iterate through the levels in random order. This should
 		# theoretically speed up convergence.
 		level_perm = np.random.permutation(m_level+1)
@@ -260,6 +260,35 @@ def load_numba_hier_list(save_path,m_level):
 	return A_hier_list, S_level
 
 
+@numba.njit()
+def init_min_rmse(X_level,A_hier_list,S_level):
+	"""Initializes the source hierarhcy to the minimum RMSE solution
+	given the mixing matrix hierarchy
+
+	Parameters:
+		X_level (np.array): A numba.typed.List of numpy arrays corresponding to
+			the data for each level of analysis.
+		A_hier_list ([np.array]): A numba.typed.List of numpy arrays containing
+			the mixing matrix hierarchy for each level of analysis.
+		S_level ([np.array,...]):A numba.typed.List of numpy arrays containing
+			the source matrices for each level of analysis.
+	"""
+	for level in range(len(X_level)):
+		# Skip levels with no data
+		if X_level[level].size==0:
+			continue
+		# Go through each patch and calculate the min rmse. This requires
+		# removing nans, so we will use a temp array to store a version
+		# of X with nans converted to 0s.
+		X_temp = np.zeros(X_level[level][0].shape)
+		for patch in range(wavelets_hgmca.level_to_npatches(level)):
+			X_temp *= 0
+			X_temp += X_level[level][patch]
+			helpers.nan_to_num(X_temp)
+			np.dot(np.linalg.pinv(A_hier_list[level][patch]),X_temp,
+				out=S_level[level][patch])
+
+
 def hgmca_opt(wav_analysis_maps,n_sources,n_epochs,lam_hier,lam_s,
 	n_iterations,A_init=None,A_global=None,lam_global=None,seed=0,
 	enforce_nn_A=True,min_rmse_rate=0,save_dict=None,verbose=False):
@@ -334,6 +363,8 @@ def hgmca_opt(wav_analysis_maps,n_sources,n_epochs,lam_hier,lam_s,
 		save_dict['save_path'],'hgmca_save')):
 		A_hier_list = allocate_A_hier(m_level,A_shape,A_init=A_init)
 		S_level = allocate_S_level(m_level,X_level,n_sources)
+		# Initialize S to the minimum rmse solution
+		init_min_rmse(X_level,A_hier_list,S_level)
 	else:
 		if verbose:
 			print('Loading previous values from %s'%(save_dict['save_path']))
@@ -363,11 +394,11 @@ def hgmca_opt(wav_analysis_maps,n_sources,n_epochs,lam_hier,lam_s,
 		if verbose:
 			print('Saving results to %s every %d epochs'%(
 				save_dict['save_path'],save_rate))
-		for _ in tqdm(range(n_epochs//save_rate),desc='hgmca epochs',
+		for si in tqdm(range(n_epochs//save_rate),desc='hgmca epochs',
 			unit_scale=save_rate):
 			hgmca_epoch_numba(X_level,A_hier_list,lam_hier,A_global,lam_global,
 				S_level,n_epochs,m_level,n_iterations,lam_s,seed,enforce_nn_A,
-				min_rmse_rate)
+				min_rmse_rate,epoch_start=si*save_rate)
 			save_numba_hier_lists(A_hier_list,S_level,save_dict['save_path'])
 			# We want reproducible behavior, but we don't want the same seed
 			# for each set of epochs. This is the best quick fix.

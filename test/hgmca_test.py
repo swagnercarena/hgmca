@@ -185,7 +185,7 @@ class HGMCATests(unittest.TestCase):
 			for patch in range(wavelets_hgmca.level_to_npatches(level)):
 				np.testing.assert_almost_equal(X_level[level][patch],
 					np.dot(A_hier_list[level][patch],S_level[level][patch]),
-					decimal=3)
+					decimal=1)
 
 		# Repeat the same but with strong priors. Start with the global prior
 		lam_global = np.ones(n_sources)*1e12

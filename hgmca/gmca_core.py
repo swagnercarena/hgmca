@@ -167,11 +167,11 @@ def gmca_numba(X,n_sources,n_iterations,A,S,A_p,lam_p,enforce_nn_A=True,
 			# the other sources. Avoid allocating new memory.
 			calculate_remainder(X,S,A,AS,R_i,i)
 
-			# Carry out optimization calculation for column of A
-			update_A(S,A,R_i,lam_p,A_p,enforce_nn_A,i)
-
 			# Carry out the S update step.
 			update_S(S,A,A_R,R_i,A_i,lam_s,i)
+
+			# Carry out optimization calculation for column of A
+			update_A(S,A,R_i,lam_p,A_p,enforce_nn_A,i)
 
 		if min_rmse_rate and (iteration+1)%min_rmse_rate == 0:
 			# Take advantage of R_i to store a version of X without
