@@ -113,7 +113,8 @@ def calculate_remainder(X,S,A,AS,R_i,i):
 
 @numba.njit
 def gmca_numba(X,n_sources,n_iterations,A,S,A_p,lam_p,enforce_nn_A=True,
-	lam_s=1,ret_min_rmse=True,min_rmse_rate=0,seed=0):
+	lam_s=1,ret_min_rmse=True,min_rmse_rate=0,seed=0,R_i_init=None,
+	AS_init=None,A_R_init=None,A_i_init=None):
 	"""Runs a numba implementation of the base gmca algorithm on X using lasso
 	shooting to solve for the closed form of the L1 sparsity term.
 
@@ -154,10 +155,22 @@ def gmca_numba(X,n_sources,n_iterations,A,S,A_p,lam_p,enforce_nn_A=True,
 		np.random.seed(seed)
 
 	# Pre-allocate R_i, AS, A_R, and A_i to speed up computation
-	R_i = np.zeros(X.shape)
-	AS = np.zeros(X.shape)
-	A_R = np.zeros((1,X.shape[1]))
-	A_i = np.zeros((A.shape[0],1))
+	if R_i_init is None:
+		R_i = np.zeros(X.shape)
+	else:
+		R_i = R_i_init
+	if AS_init is None:
+		AS = np.zeros(X.shape)
+	else:
+		AS=AS_init
+	if A_R_init is None:
+		A_R = np.zeros((1,X.shape[1]))
+	else:
+		A_R = A_R_init
+	if A_i_init is None:
+		A_i = np.zeros((A.shape[0],1))
+	else:
+		A_i = A_i_init
 
 	for iteration in range(n_iterations):
 		# At each iteration we select a random ordering to update the sources

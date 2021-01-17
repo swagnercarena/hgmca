@@ -200,7 +200,7 @@ class GMCATests(unittest.TestCase):
 		S = np.ones(S_org.shape)
 
 		# Run GMCA
-		gmca_core.gmca_numba(X, n_sources, n_iterations, A, S, A_p, lam_p,
+		gmca_core.gmca_numba(X,n_sources,n_iterations,A,S,A_p,lam_p,
 			ret_min_rmse=True)
 
 		# Check that GMCA returns the minimum RMSE solution
@@ -216,6 +216,37 @@ class GMCATests(unittest.TestCase):
 
 		# Check that GMCA does not return the min_rmse solution
 		self.assertNotEqual(np.sum(S),np.sum(np.dot(np.linalg.pinv(A),X)))
+
+	def test_init_consistent(self):
+		# Test that passing or not passing in the initialization returns the
+		# same thing.
+		n_freqs = 10
+		n_wavs = 100
+		n_sources = 5
+		n_iterations = 10
+		lam_p = np.array([0.0]*5)
+		X = np.random.normal(size=(n_freqs,n_wavs))
+
+		# Run GMCA
+		A_p = np.ones((n_freqs,n_sources))
+		A = np.ones((n_freqs,n_sources))
+		S = np.ones((n_sources,n_wavs))
+		gmca_core.gmca_numba(X,n_sources,n_iterations,A,S,A_p,lam_p,
+			ret_min_rmse=True,seed=2)
+
+		# Premade initializations
+		R_i = np.zeros(X.shape)
+		AS = np.zeros(X.shape)
+		A_R = np.zeros((1,X.shape[1]))
+		A_i = np.zeros((A.shape[0],1))
+		A2 = np.ones((n_freqs,n_sources))
+		S2 = np.ones((n_sources,n_wavs))
+		gmca_core.gmca_numba(X,n_sources,n_iterations,A2,S2,A_p,lam_p,
+			ret_min_rmse=True,seed=2,R_i_init=R_i,AS_init=AS,A_R_init=A_R,
+			A_i_init=A_i)
+
+		np.testing.assert_almost_equal(S,S2)
+		np.testing.assert_almost_equal(A,A2)
 
 	def test_min_rmse_rate(self):
 		warnings.filterwarnings("ignore")
@@ -396,8 +427,8 @@ class GMCATests(unittest.TestCase):
 		self.assertAlmostEqual(np.max(np.abs(A1-A2)),0)
 		self.assertAlmostEqual(np.max(np.abs(S1-S2)),0)
 
-		self.assertGreater(np.mean(np.abs(A1-A3)),1e-4)
-		self.assertGreater(np.mean(np.abs(S1-S3)),1e-4)
+		self.assertGreater(np.mean(np.abs(A1-A3)),1e-7)
+		self.assertGreater(np.mean(np.abs(S1-S3)),1e-7)
 
 	def test_wrapper(self):
 		# Test that the wrapper returns the same results as the numba

@@ -251,6 +251,37 @@ class HGMCATests(unittest.TestCase):
 			os.remove(os.path.join(folder_path,'S_%d.npy'%(level)))
 		os.rmdir(folder_path)
 
+	def test_int_min_rmse(self):
+		# Make sure that it initializes things well
+		m_level = 4
+		n_freqs = 5
+		A_shape = (n_freqs,5)
+		n_sources = 5
+		X_level = numba.typed.List()
+		X_level.append(np.empty((0,0,0)))
+		A_init = np.random.rand(A_shape[0]*A_shape[1]).reshape(A_shape)
+		A_hier_list = hgmca_core.allocate_A_hier(m_level,A_shape,
+			A_init=A_init)
+		# Initialize X in a way that will return a really clean min
+		# rmse solution given the mixing matrices
+		for level in range(m_level):
+			npatches = wavelets_hgmca.level_to_npatches(level+1)
+			n_wavs = np.random.randint(5,10)
+			X_level.append(np.ones((npatches,n_freqs,n_wavs)))
+			for patch in range(wavelets_hgmca.level_to_npatches(level)):
+				S_true = np.ones((n_sources,n_wavs))
+				X_level[level+1][patch] = np.dot(A_hier_list[level][patch],
+					S_true)
+		# Make sure the min_rmse code returns very small error.
+		S_level = hgmca_core.allocate_S_level(m_level,X_level,n_sources)
+		hgmca_core.init_min_rmse(X_level,A_hier_list,S_level)
+		for level in range(1,m_level+1):
+			for patch in range(wavelets_hgmca.level_to_npatches(level)):
+				np.testing.assert_almost_equal(X_level[level][patch],
+					np.dot(A_hier_list[level][patch],
+						S_level[level][patch]))
+		return
+
 	def test_hgmca_opt(self):
 		# Generate a quick approximation using the hgmca_opt code and
 		# make sure it gives the same results as the core hgmca code.
@@ -298,6 +329,7 @@ class HGMCATests(unittest.TestCase):
 		A_hier_list = hgmca_core.allocate_A_hier(self.m_level,A_shape,
 			A_init=None)
 		S_level = hgmca_core.allocate_S_level(self.m_level,X_level,n_sources)
+		hgmca_core.init_min_rmse(X_level,A_hier_list,S_level)
 		hgmca_core.hgmca_epoch_numba(X_level,A_hier_list,lam_hier,A_global,
 			lam_global,S_level,n_epochs,self.m_level,n_iterations,lam_s,seed,
 			True,min_rmse_rate)

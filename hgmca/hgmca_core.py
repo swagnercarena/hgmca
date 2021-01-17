@@ -171,6 +171,17 @@ def hgmca_epoch_numba(X_level,A_hier_list,lam_hier,A_global,lam_global,S_level,
 	Notes:
 		A_hier and S_level will be updated in place.
 	"""
+	# We allocate the arrays that gmca will use here to avoid them being
+	# reallocated
+	R_i_level = numba.typed.List()
+	AS_level = numba.typed.List()
+	A_R_level = numba.typed.List()
+	A_i_level = numba.typed.List()
+	for level in range(m_level+1):
+		R_i_level.append(np.zeros(X_level[level][0].shape))
+		AS_level.append(np.zeros(X_level[level][0].shape))
+		A_R_level.append(np.zeros((1,X_level[level].shape[2])))
+		A_i_level.append(np.zeros((X_level[level].shape[1],1)))
 	# Set the random seed.
 	np.random.seed(seed)
 	# Now we iterate through our graphical model using our approximate closed
@@ -211,7 +222,9 @@ def hgmca_epoch_numba(X_level,A_hier_list,lam_hier,A_global,lam_global,S_level,
 					gmca_core.gmca_numba(X_p,n_sources,n_iterations,
 						A_hier_list[level][patch],S_p,A_p=A_prior,
 						lam_p=np.ones(n_sources),enforce_nn_A=enforce_nn_A,
-						lam_s=lam_s,ret_min_rmse=ret_min_rmse)
+						lam_s=lam_s,ret_min_rmse=ret_min_rmse,
+						R_i_init=R_i_level[level],AS_init=AS_level[level],
+						A_R_init=A_R_level[level],A_i_init=A_i_level[level])
 
 
 def save_numba_hier_lists(A_hier_list,S_level,save_path):
@@ -395,7 +408,7 @@ def hgmca_opt(wav_analysis_maps,n_sources,n_epochs,lam_hier,lam_s,
 			print('Saving results to %s every %d epochs'%(
 				save_dict['save_path'],save_rate))
 		for si in tqdm(range(n_epochs//save_rate),desc='hgmca epochs',
-			unit_scale=save_rate):
+			unit='%d epochs'%(save_dict['save_rate']),unit_scale=save_rate):
 			hgmca_epoch_numba(X_level,A_hier_list,lam_hier,A_global,lam_global,
 				S_level,n_epochs,m_level,n_iterations,lam_s,seed,enforce_nn_A,
 				min_rmse_rate,epoch_start=si*save_rate)
