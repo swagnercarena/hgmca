@@ -2,25 +2,24 @@ language: python
 
 python:
     - '3.6'
-   
+
 cache:
     ccache: true
     pip: true
 
 before_install:
-  - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/travis/build/swagnercarena/hgmca/s2letbin
-  - sudo apt-get install gfortran
-  - unzip s2letbin_nersc.zip
+  - git clone https://github.com/healpy/healpy-data.git
+  - pip install coverage==4.5.4
   - pip install coveralls
   - pip install python-coveralls
 
 install:
-    - pip install .
+    - pip install -e .
     - pip install -r requirements.txt
 
 script:
-  - coverage run --source hgmca setup.py test
+  - cd test
+  - coverage run --source hgmca -m unittest -v *_test.py
 
 after_success:
-  - codecov
   - coveralls
